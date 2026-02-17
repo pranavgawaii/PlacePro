@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
-
-function copyCookies(source: NextResponse, destination: NextResponse) {
-  source.cookies.getAll().forEach((cookie) => {
-    destination.cookies.set(cookie.name, cookie.value, cookie);
-  });
-}
+import { updateSession } from "./lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
   const { supabaseResponse, user, role } = await updateSession(request);
