@@ -7,42 +7,64 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     return { supabaseResponse, user: null, role: null as UserRole | null };
   }
 
-  const { data: roleRow } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  try {
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(
+            cookiesToSet: Array<{
+              name: string;
+              value: string;
+              options: Record<string, unknown>;
+            }>
+          ) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+            supabaseResponse = NextResponse.next({
+              request,
+            });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
 
-  const role = (roleRow?.role ?? null) as UserRole | null;
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-  return { supabaseResponse, user, role };
+    if (userError || !user) {
+      return { supabaseResponse, user: null, role: null as UserRole | null };
+    }
+
+    const { data: roleRow, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (roleError) {
+      return { supabaseResponse, user: null, role: null as UserRole | null };
+    }
+
+    const role = (roleRow?.role ?? null) as UserRole | null;
+
+    return { supabaseResponse, user, role };
+  } catch {
+    return { supabaseResponse, user: null, role: null as UserRole | null };
+  }
 }

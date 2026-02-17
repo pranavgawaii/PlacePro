@@ -2,12 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "./lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user, role } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
 
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
   const isStudentRoute = pathname.startsWith("/student");
   const isAdminRoute = pathname.startsWith("/admin");
+
+  let supabaseResponse = NextResponse.next({ request });
+  let user: { id: string } | null = null;
+  let role: string | null = null;
+
+  try {
+    const session = await updateSession(request);
+    supabaseResponse = session.supabaseResponse;
+    user = session.user;
+    role = session.role;
+  } catch {
+    if (isStudentRoute || isAdminRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      return NextResponse.redirect(redirectUrl);
+    }
+    return NextResponse.next({ request });
+  }
 
   if (!user && (isStudentRoute || isAdminRoute)) {
     const redirectUrl = request.nextUrl.clone();
