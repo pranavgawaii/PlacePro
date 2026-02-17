@@ -318,7 +318,7 @@ export function CompaniesPage() {
                       <div className="flex items-start gap-4 py-1">
                         <div className="h-12 w-12 rounded-lg border bg-white flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
                           {company.name.toLowerCase().includes("tcs") ? (
-                            <img src="/tcs.jpg" alt="TCS" className="h-full w-full object-contain p-1" />
+                            <img src="/brand/tcs.jpg" alt="TCS" className="h-full w-full object-contain p-1" />
                           ) : company.name.toLowerCase().includes("google") ? (
                             <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" className="h-full w-full object-contain p-2.5" />
                           ) : company.logo_url ? (

@@ -67,7 +67,7 @@ export function LoginForm() {
       <div className="text-center space-y-2">
         <div className="flex justify-center mb-6">
           <div className="h-12 w-12 bg-black rounded-lg flex items-center justify-center">
-            <img src="/logo.png" alt="PlacePro" className="w-8 h-8 object-contain invert brightness-0" />
+            <img src="/brand/logo.png" alt="PlacePro" className="w-8 h-8 object-contain invert brightness-0" />
             {/* Fallback if logo is white/transparent, or just use a placeholder icon if image fails. 
                  Since I can't see the image, I'll assume the user wants the branding. 
                  Using a black box for high contrast professional look. */}

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import { UserProfileMenu } from "@/components/student/user-profile-menu";
 import { Bell } from "lucide-react";
+import { DashboardHeader } from "@/components/layouts/DashboardHeader";
 
 export default async function AdminLayout({
   children
@@ -23,39 +24,14 @@ export default async function AdminLayout({
 
   return (
     <BespokeLayout>
-      <header className="z-10 bg-white/95 backdrop-blur-sm nav-line h-16 flex items-center justify-between px-6">
-        <div className="flex items-center gap-4">
-          <Link href="/admin" className="flex items-center gap-2">
-            <Image
-              src="/logo.png"
-              alt="PlacePro Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8 object-contain"
-            />
-            <span className="text-lg font-bold tracking-tight">
-              PlacePro <span className="text-neutral-400 font-medium ml-1">
-                {role === "super_admin" ? "Super Admin" : "Admin"}
-              </span>
-            </span>
-          </Link>
-          <div className="h-6 w-px bg-neutral-200 mx-2"></div>
-        </div>
-        <div className="flex-1 max-w-xl mx-8">
-          <div className="flex-1"></div>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/admin/messages" className="relative p-2 hover:bg-neutral-50 rounded-full transition-colors text-neutral-500 hover:text-black">
-            <Bell className="w-5 h-5" />
-          </Link>
-          <UserProfileMenu
-            name={adminName}
-            email={user?.email}
-            role={role as any}
-            avatarUrl={user?.user_metadata?.avatar_url}
-          />
-        </div>
-      </header>
+      <DashboardHeader
+        role={role as any}
+        userName={adminName}
+        userEmail={user.email}
+        avatarUrl={user.user_metadata?.avatar_url}
+        homeUrl="/admin"
+        messagesUrl="/admin/messages"
+      />
       <div className="flex flex-1 overflow-hidden">
         <AdminSidebar />
         <main className="flex-1 overflow-y-auto bg-neutral-50/30 p-8">

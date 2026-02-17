@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
-import { SupabaseProvider } from "@/components/supabase-provider";
+import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -19,7 +19,10 @@ export const metadata: Metadata = {
   title: "PlacePro | Campus Placement Management",
   description: "Manage student profiles, company eligibility, and campus placement workflows in one dashboard.",
   icons: {
-    icon: "/favicon-square.png"
+    icon: [
+      { url: "/favicon.svg?v=2", type: "image/svg+xml" },
+      { url: "/favicon.png?v=2", type: "image/png" }
+    ]
   }
 };
 

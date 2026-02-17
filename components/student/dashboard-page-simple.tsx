@@ -220,7 +220,7 @@ export function StudentDashboardPageSimple() {
                                     <div className="flex items-start gap-5">
                                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white flex items-center justify-center p-1">
                                             {company.name.toLowerCase().includes("tcs") ? (
-                                                <img src="/tcs.jpg" alt="TCS" className="h-full w-full object-contain" />
+                                                <img src="/brand/tcs.jpg" alt="TCS" className="h-full w-full object-contain" />
                                             ) : company.name.toLowerCase().includes("google") ? (
                                                 <img
                                                     src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"

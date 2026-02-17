@@ -198,7 +198,7 @@ export function CompanyApplicationsPage({ companyId }: CompanyApplicationsPagePr
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 rounded-2xl border bg-white flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
           {company.name.toLowerCase().includes("tcs") ? (
-            <img src="/tcs.jpg" alt="TCS" className="h-full w-full object-contain p-1.5" />
+            <img src="/brand/tcs.jpg" alt="TCS" className="h-full w-full object-contain p-1.5" />
           ) : company.name.toLowerCase().includes("google") ? (
             <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" className="h-full w-full object-contain p-3" />
           ) : company.logo_url ? (
