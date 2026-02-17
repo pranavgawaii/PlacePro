@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-white`} suppressHydrationWarning>
         <SupabaseProvider>{children}</SupabaseProvider>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );
