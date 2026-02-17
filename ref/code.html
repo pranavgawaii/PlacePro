@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PlacePro - Technical Architecture</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&amp;family=Noto+Serif:ital,wght@0,300;0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#000000",
+                        "background-light": "#ffffff",
+                        "background-dark": "#0a0a0a",
+                        "grid-line": "#e5e5e5",
+                        "grid-dot": "#a3a3a3",
+                    },
+                    fontFamily: {
+                        display: ['"Noto Serif"', "serif"],
+                        sans: ['"Geist"', "sans-serif"],
+                    },
+                    spacing: {
+                        '18': '4.5rem',
+                    }
+                },
+            },
+        };
+    </script>
+<style>.dot-matrix-pattern {
+            background-image: radial-gradient(#d4d4d4 1px, transparent 1px);
+            background-size: 8px 8px;
+        }.technical-grid {
+            background-size: 64px 64px;
+            background-image:
+                linear-gradient(to right, #f3f4f6 1px, transparent 1px),
+                linear-gradient(to bottom, #f3f4f6 1px, transparent 1px);
+        }
+        .technical-dot {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background-color: #000;
+            border-radius: 50%;
+        }.connector-line {
+            position: absolute;
+            background-color: #000;
+            height: 1px;
+            z-index: 0;
+            transform-origin: left center;
+        }
+        .node-corner {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: black;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-black dark:text-white font-sans antialiased overflow-x-hidden">
+<div class="flex min-h-screen relative w-full">
+<div class="hidden lg:block w-[64px] border-r-2 border-black dark:border-white/20 dot-matrix-pattern relative shrink-0"></div>
+<div class="flex-1 flex flex-col relative technical-grid bg-white dark:bg-background-dark">
+<div class="absolute inset-0 pointer-events-none opacity-20 dark:opacity-10" style="background-image: radial-gradient(circle, #000 1px, transparent 1px); background-size: 64px 64px; background-position: -2px -2px;"></div>
+<header class="w-full px-8 py-6 flex items-center justify-between relative z-20 bg-white/80 dark:bg-background-dark/80 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-black dark:bg-white text-white dark:text-black flex items-center justify-center rounded-sm rotate-45">
+<span class="material-icons-outlined -rotate-45 text-lg">school</span>
+</div>
+<span class="text-xl font-medium tracking-tight">PlacePro</span>
+</div>
+<nav class="hidden md:flex gap-8 text-sm font-medium text-gray-600 dark:text-gray-300">
+<a class="hover:text-black dark:hover:text-white transition-colors" href="#">Product</a>
+<a class="hover:text-black dark:hover:text-white transition-colors" href="#">Features</a>
+<a class="hover:text-black dark:hover:text-white transition-colors" href="#">Pricing</a>
+<a class="hover:text-black dark:hover:text-white transition-colors" href="#">Resources</a>
+<a class="hover:text-black dark:hover:text-white transition-colors" href="#">Cases</a>
+</nav>
+<div class="relative group">
+<button class="bg-black dark:bg-white text-white dark:text-black px-6 py-3 text-sm font-medium relative hover:bg-gray-900 dark:hover:bg-gray-100 transition-colors">
+                        Book a Demo
+<div class="absolute -top-1 -left-1 w-1 h-1 bg-black dark:bg-white rounded-full"></div>
+<div class="absolute -top-1 -right-1 w-1 h-1 bg-black dark:bg-white rounded-full"></div>
+<div class="absolute -bottom-1 -left-1 w-1 h-1 bg-black dark:bg-white rounded-full"></div>
+<div class="absolute -bottom-1 -right-1 w-1 h-1 bg-black dark:bg-white rounded-full"></div>
+</button>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center pt-16 pb-20 relative z-10 px-4">
+<div class="mb-8 bg-gray-100 dark:bg-gray-800 px-4 py-1.5 rounded-sm text-xs font-medium text-gray-600 dark:text-gray-300 tracking-wide">
+                    Trusted by 500+ Engineering Institutions
+                </div>
+<h1 class="font-display text-5xl md:text-7xl lg:text-8xl text-center leading-[1.1] mb-8 max-w-5xl tracking-tight text-black dark:text-white">
+                    Increase Qualified <br/>
+<span class="italic font-light">Placements</span> by 31% in 90 Days
+                </h1>
+<p class="text-center text-gray-600 dark:text-gray-400 max-w-2xl text-lg leading-relaxed mb-10 font-light">
+                    PlacePro uses the PlacementGraph™ Engine to map career signals across student records, academic data, and recruiter channels prioritizing only the students most likely to be hired.
+                </p>
+<div class="flex gap-4 mb-20 relative">
+<button class="bg-black dark:bg-white text-white dark:text-black px-8 py-4 text-sm font-medium relative group">
+                        Book a Strategy Demo
+                        <div class="absolute top-0 left-0 w-1 h-1 bg-white dark:bg-black"></div>
+<div class="absolute top-0 right-0 w-1 h-1 bg-white dark:bg-black"></div>
+<div class="absolute bottom-0 left-0 w-1 h-1 bg-white dark:bg-black"></div>
+<div class="absolute bottom-0 right-0 w-1 h-1 bg-white dark:bg-black"></div>
+</button>
+<button class="bg-gray-100 dark:bg-gray-800 text-black dark:text-white border border-gray-200 dark:border-gray-700 px-8 py-4 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative">
+                        View 5-Minute Product Tour
+                        <div class="absolute top-1/2 -left-[2px] w-[3px] h-[3px] bg-black dark:bg-white rounded-full -translate-y-1/2"></div>
+<div class="absolute top-1/2 -right-[2px] w-[3px] h-[3px] bg-black dark:bg-white rounded-full -translate-y-1/2"></div>
+</button>
+</div>
+<div class="relative w-full max-w-[1200px] h-[400px] hidden md:block">
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="arrowhead" markerHeight="6" markerWidth="6" orient="auto" refX="5" refY="3">
+<path d="M0,0 L6,3 L0,6 L6,3" style="stroke: none; fill: black;"></path>
+</marker>
+</defs>
+<path class="dark:stroke-white/50" d="M 280 60 L 380 60 L 450 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 280 120 L 360 120 L 450 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 280 180 L 450 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 280 240 L 360 240 L 450 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 280 300 L 380 300 L 450 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 550 180 L 650 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 720 120 L 760 120 L 800 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 720 180 L 840 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 720 240 L 760 240 L 800 180" fill="none" stroke="black" stroke-width="1"></path>
+<path class="dark:stroke-white/50" d="M 840 180 L 880 180" fill="none" stroke="black" stroke-width="1"></path>
+</svg>
+<div class="absolute left-[120px] top-[40px] flex flex-col gap-[20px]">
+<div class="w-[160px] h-[40px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center px-3 gap-2 relative z-10">
+<span class="material-icons-outlined text-sm">folder_open</span>
+<span class="text-xs font-medium">Student Records</span>
+<div class="absolute -right-[2px] top-1/2 -translate-y-1/2 w-1 h-1 bg-black rounded-full"></div>
+</div>
+<div class="w-[160px] h-[40px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center px-3 gap-2 relative z-10">
+<span class="material-icons-outlined text-sm">description</span>
+<span class="text-xs font-medium">Resume Data</span>
+<div class="absolute -right-[2px] top-1/2 -translate-y-1/2 w-1 h-1 bg-black rounded-full"></div>
+</div>
+<div class="w-[160px] h-[40px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center px-3 gap-2 relative z-10">
+<span class="material-icons-outlined text-sm">school</span>
+<span class="text-xs font-medium">Academic History</span>
+<div class="absolute -right-[2px] top-1/2 -translate-y-1/2 w-1 h-1 bg-black rounded-full"></div>
+</div>
+<div class="w-[160px] h-[40px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center px-3 gap-2 relative z-10">
+<span class="material-icons-outlined text-sm">work_outline</span>
+<span class="text-xs font-medium">Internships</span>
+<div class="absolute -right-[2px] top-1/2 -translate-y-1/2 w-1 h-1 bg-black rounded-full"></div>
+</div>
+<div class="w-[160px] h-[40px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center px-3 gap-2 relative z-10">
+<span class="material-icons-outlined text-sm">grid_view</span>
+<span class="text-xs font-medium">Skill Matrix</span>
+<div class="absolute -right-[2px] top-1/2 -translate-y-1/2 w-1 h-1 bg-black rounded-full"></div>
+</div>
+</div>
+<div class="absolute left-[450px] top-[130px] w-[100px] h-[100px] bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 flex items-center justify-center relative z-10 shadow-sm">
+<div class="w-[70px] h-[70px] border border-dashed border-gray-400 dark:border-gray-600 flex items-center justify-center">
+<div class="w-10 h-10 bg-black dark:bg-white text-white dark:text-black flex items-center justify-center rounded-sm">
+<span class="material-icons-outlined text-xl">school</span>
+</div>
+</div>
+<div class="absolute top-1 left-1 w-1 h-1 bg-black dark:bg-white rounded-full"></div>
+<div class="absolute top-1 right-1 w-1 h-1 bg-black dark:bg-white rounded-full"></div>
+<div class="absolute bottom-1 left-1 w-1 h-1 bg-black dark:bg-white rounded-full"></div>
+<div class="absolute bottom-1 right-1 w-1 h-1 bg-black dark:bg-white rounded-full"></div>
+</div>
+<div class="absolute left-[650px] top-[100px] flex flex-col gap-[20px]">
+<div class="w-[140px] h-[40px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center px-3 justify-between relative z-10">
+<span class="text-xs font-medium">01. Top Candidate</span>
+<div class="w-1 h-1 bg-black rounded-full absolute -left-[2px] top-1/2 -translate-y-1/2"></div>
+<div class="w-1 h-1 bg-black rounded-full absolute -right-[2px] top-1/2 -translate-y-1/2"></div>
+</div>
+<div class="w-[140px] h-[40px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center px-3 justify-between relative z-10">
+<span class="text-xs font-medium">02. Shortlisted</span>
+<div class="w-1 h-1 bg-black rounded-full absolute -left-[2px] top-1/2 -translate-y-1/2"></div>
+<div class="w-1 h-1 bg-black rounded-full absolute -right-[2px] top-1/2 -translate-y-1/2"></div>
+</div>
+<div class="w-[140px] h-[40px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center px-3 justify-between relative z-10">
+<span class="text-xs font-medium">03. Qualified</span>
+<div class="w-1 h-1 bg-black rounded-full absolute -left-[2px] top-1/2 -translate-y-1/2"></div>
+<div class="w-1 h-1 bg-black rounded-full absolute -right-[2px] top-1/2 -translate-y-1/2"></div>
+</div>
+</div>
+<div class="absolute left-[880px] top-[150px] flex flex-col items-center">
+<span class="text-[10px] font-semibold uppercase tracking-wider mb-2 bg-white dark:bg-black px-1 relative z-10">Top Ranked</span>
+<div class="w-[120px] h-[50px] border border-black dark:border-white/50 bg-white dark:bg-gray-900 flex items-center justify-center relative z-10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.5)]">
+<span class="font-bold text-sm">Akash V.</span>
+<div class="absolute -left-[2px] top-1/2 -translate-y-1/2 w-1 h-1 bg-black rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="md:hidden w-full h-[300px] border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-lg">
+<p class="text-xs text-gray-500 text-center px-4">Technical Architecture Diagram Viewable on Desktop</p>
+</div>
+</main>
+</div>
+<div class="hidden lg:block w-[64px] border-l-2 border-black dark:border-white/20 dot-matrix-pattern relative shrink-0"></div>
+</div>
+
+</body></html>

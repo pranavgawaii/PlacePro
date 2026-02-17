@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PlacePro: Geist Admin Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#111111", 
+              "surface-hover": "#f5f5f5",
+            },
+            fontFamily: {
+              sans: ["'Inter'", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+              mono: ["'JetBrains Mono'", "monospace"],
+            },
+            spacing: {
+              'frame': '64px',
+            },
+            boxShadow: {
+              'card-hover': '0 4px 12px rgba(0,0,0,0.05)',
+            }
+          },
+        },
+      };
+    </script>
+<style>
+        body {
+            background-color: #ffffff;
+            color: #111111;
+            font-feature-settings: "cv11", "ss01";
+            -webkit-font-smoothing: antialiased;
+        }
+        .bespoke-frame {
+            border-left: 2px solid #000;
+            border-right: 2px solid #000;
+            max-width: calc(100% - 128px);
+            margin: 0 auto;
+            position: relative;
+            background: #fff;
+            min-height: 100vh;
+        }
+        .nav-line {
+            border-bottom: 2px solid #000;
+        }
+        .card-border {
+            border: 2px solid #000;
+            transition: all 0.2s ease;
+        }
+        .card-border:hover {
+            transform: translateY(-2px);
+            box-shadow: 4px 4px 0px rgba(0,0,0,1);
+        }::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ccc; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555; 
+        }@keyframes draw {
+            to { stroke-dashoffset: 0; }
+        }
+        .sparkline-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: draw 2s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-white text-neutral-900 font-sans antialiased overflow-x-hidden">
+<div class="bespoke-frame flex flex-col">
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm nav-line h-16 flex items-center justify-between px-6">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-2xl">school</span>
+<span class="text-lg font-bold tracking-tight">PlacePro <span class="text-neutral-400 font-medium ml-1">Admin</span></span>
+</div>
+<div class="h-6 w-px bg-neutral-200 mx-2"></div>
+<div class="text-sm font-medium text-neutral-500">Academic Year 2024-25</div>
+</div>
+<div class="flex-1 max-w-xl mx-8">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-neutral-400 group-hover:text-neutral-600 transition-colors">search</span>
+<input class="w-full bg-neutral-50 border border-neutral-200 rounded-lg py-2 pl-10 pr-12 text-sm focus:outline-none focus:border-black focus:ring-0 transition-all placeholder:text-neutral-400" placeholder="Search students, companies, or commands..." type="text"/>
+<div class="absolute right-3 top-2.5 flex items-center gap-1">
+<kbd class="hidden sm:inline-block border border-neutral-200 rounded px-1.5 text-[10px] font-bold text-neutral-400 bg-white">Ctrl</kbd>
+<kbd class="hidden sm:inline-block border border-neutral-200 rounded px-1.5 text-[10px] font-bold text-neutral-400 bg-white">K</kbd>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 hover:bg-neutral-50 rounded-full transition-colors text-neutral-500 hover:text-black">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-neutral-200">
+<div class="text-right hidden sm:block">
+<div class="text-sm font-semibold">IIT Delhi</div>
+<div class="text-xs text-neutral-500">TPO Administrator</div>
+</div>
+<div class="w-9 h-9 bg-neutral-100 rounded border border-neutral-200 overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6fJ4vsndAPgoB87Pb0OGlbyMnBGXpuHdA6q9rsoVFp0JCyQuoCaahOtbXEGkywD0evy4q_MW9-BHKP08Yo048AQyu15PiVHcdJ9v4VNII1yzy-oDoqiW5pFWyJCYzd0g-WpQH6lVla534S6Y5C-zjutFJmMVUCXmWMo7ChsLYXRO9aDE5VcIeudXkTPoqFkpPnw-9HZIgOzEiCRepIc1p2eweZSnDBpUXiM6xmqCSyS3halNnFyug4YnRP9kyyY1nkKgRPhE8NVdy"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden min-h-[calc(100vh-65px)]">
+<aside class="w-64 border-r-2 border-black flex flex-col bg-white hidden md:flex shrink-0">
+<nav class="flex-1 p-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 bg-black text-white rounded text-sm font-medium shadow-sm" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 hover:text-black rounded text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] fill-0">groups</span>
+                    Students
+                    <span class="ml-auto bg-neutral-100 text-neutral-600 py-0.5 px-2 rounded text-xs font-bold">2.4k</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 hover:text-black rounded text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">domain</span>
+                    Companies
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 hover:text-black rounded text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">event_available</span>
+                    Drives
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 hover:text-black rounded text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+                    Analytics
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-neutral-600 hover:bg-neutral-50 hover:text-black rounded text-sm font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">mark_email_unread</span>
+                    Broadcasts
+                </a>
+</nav>
+<div class="p-4 border-t border-neutral-200">
+<div class="bg-neutral-50 rounded p-4 border border-neutral-200">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-neutral-500 text-sm">support_agent</span>
+<span class="text-xs font-semibold text-neutral-700">Need Help?</span>
+</div>
+<p class="text-[10px] text-neutral-500 leading-relaxed mb-3">Contact support for urgent drive issues.</p>
+<button class="w-full text-xs bg-white border border-neutral-300 rounded py-1.5 font-medium hover:bg-neutral-50 transition-colors">Contact Support</button>
+</div>
+<div class="mt-4 flex items-center justify-between px-2 text-xs text-neutral-500">
+<span>v2.4.0</span>
+<a class="hover:underline" href="#">Settings</a>
+</div>
+</div>
+</aside>
+<main class="flex-1 overflow-y-auto bg-neutral-50/30 p-8">
+<div class="max-w-7xl mx-auto space-y-8">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-white p-6 rounded-lg card-border relative overflow-hidden group">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Total Placements</h3>
+<div class="text-3xl font-bold mt-1 tracking-tight">1,842</div>
+<div class="text-xs text-green-600 font-medium mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                                    +12.5% vs last year
+                                </div>
+</div>
+<div class="relative w-12 h-12">
+<svg class="transform -rotate-90 w-12 h-12">
+<circle cx="24" cy="24" fill="transparent" r="20" stroke="#f0f0f0" stroke-width="4"></circle>
+<circle class="transition-all duration-1000 ease-out" cx="24" cy="24" fill="transparent" r="20" stroke="#111" stroke-dasharray="125.6" stroke-dashoffset="30" stroke-width="4"></circle>
+</svg>
+<span class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold">78%</span>
+</div>
+</div>
+</div>
+<div class="bg-white p-6 rounded-lg card-border group">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Avg. Package (LPA)</h3>
+<div class="text-3xl font-bold mt-1 tracking-tight">₹24.5L</div>
+<div class="text-xs text-neutral-500 font-medium mt-1">Highest: ₹1.2 Cr (Intl.)</div>
+</div>
+<span class="p-2 bg-neutral-50 rounded text-neutral-600 material-symbols-outlined">payments</span>
+</div>
+<div class="h-10 mt-4 relative">
+<svg class="w-full h-full overflow-visible" preserveAspectRatio="none">
+<path class="sparkline-path" d="M0,40 L20,35 L40,38 L60,20 L80,25 L100,10 L120,15 L140,5 L160,20 L180,10 L200,30 L220,15 L240,5 L260,10" fill="none" stroke="#111" stroke-width="2"></path>
+<circle cx="260" cy="10" fill="#111" r="3"></circle>
+</svg>
+</div>
+</div>
+<div class="bg-white p-6 rounded-lg card-border group">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Active Drives</h3>
+<div class="text-3xl font-bold mt-1 tracking-tight">14</div>
+<div class="text-xs text-neutral-500 font-medium mt-1">4 Interviews today</div>
+</div>
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-white flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-lg text-blue-600">diamond</span>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-white flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-lg text-orange-600">deployed_code</span>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-white flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-lg text-green-600">terminal</span>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-neutral-100 flex items-center justify-center text-[10px] font-bold text-neutral-600">
+                                    +11
+                                </div>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-neutral-100 flex justify-between items-center">
+<span class="text-xs text-neutral-500 font-medium">Next: Google R2 @ 2:00 PM</span>
+<button class="text-xs font-bold underline hover:no-underline">View Schedule</button>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-lg card-border p-6 md:p-8">
+<div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+<div>
+<h2 class="text-lg font-bold">Placement Trends by Department</h2>
+<p class="text-sm text-neutral-500">Comparative analysis of offers across key engineering streams.</p>
+</div>
+<div class="flex items-center gap-2 bg-neutral-100 p-1 rounded-lg">
+<button class="px-3 py-1 bg-white shadow-sm rounded text-xs font-medium text-black">Offers</button>
+<button class="px-3 py-1 hover:bg-white/50 rounded text-xs font-medium text-neutral-500 transition-colors">Packages</button>
+<button class="px-3 py-1 hover:bg-white/50 rounded text-xs font-medium text-neutral-500 transition-colors">Participation</button>
+</div>
+</div>
+<div class="relative h-64 w-full">
+<div class="absolute inset-0 flex flex-col justify-between text-xs text-neutral-400">
+<div class="w-full border-b border-neutral-100 pb-1">100%</div>
+<div class="w-full border-b border-neutral-100 pb-1">75%</div>
+<div class="w-full border-b border-neutral-100 pb-1">50%</div>
+<div class="w-full border-b border-neutral-100 pb-1">25%</div>
+<div class="w-full border-b border-neutral-100 pb-1">0%</div>
+</div>
+<div class="absolute inset-0 flex items-end justify-around pt-6 px-4">
+<div class="w-12 md:w-16 flex flex-col gap-1 group cursor-pointer">
+<div class="relative w-full bg-neutral-900 rounded-t h-[92%] transition-all duration-500 hover:bg-neutral-700">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">92%</div>
+</div>
+<div class="text-xs font-semibold text-center mt-2">CS</div>
+</div>
+<div class="w-12 md:w-16 flex flex-col gap-1 group cursor-pointer">
+<div class="relative w-full bg-neutral-300 rounded-t h-[85%] transition-all duration-500 hover:bg-neutral-400">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">85%</div>
+</div>
+<div class="text-xs font-semibold text-center mt-2">ECE</div>
+</div>
+<div class="w-12 md:w-16 flex flex-col gap-1 group cursor-pointer">
+<div class="relative w-full bg-neutral-300 rounded-t h-[78%] transition-all duration-500 hover:bg-neutral-400">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">78%</div>
+</div>
+<div class="text-xs font-semibold text-center mt-2">EE</div>
+</div>
+<div class="w-12 md:w-16 flex flex-col gap-1 group cursor-pointer">
+<div class="relative w-full bg-neutral-300 rounded-t h-[65%] transition-all duration-500 hover:bg-neutral-400">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">65%</div>
+</div>
+<div class="text-xs font-semibold text-center mt-2">ME</div>
+</div>
+<div class="w-12 md:w-16 flex flex-col gap-1 group cursor-pointer">
+<div class="relative w-full bg-neutral-300 rounded-t h-[58%] transition-all duration-500 hover:bg-neutral-400">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">58%</div>
+</div>
+<div class="text-xs font-semibold text-center mt-2">CE</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-lg card-border overflow-hidden">
+<div class="p-6 border-b border-neutral-200 flex justify-between items-center">
+<h2 class="text-lg font-bold">Live Placement Feed</h2>
+<div class="flex gap-2">
+<button class="p-1.5 hover:bg-neutral-100 rounded text-neutral-500 transition-colors">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+</button>
+<button class="p-1.5 hover:bg-neutral-100 rounded text-neutral-500 transition-colors">
+<span class="material-symbols-outlined text-lg">download</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead class="bg-neutral-50 border-b border-neutral-200">
+<tr>
+<th class="px-6 py-4 font-semibold text-neutral-600">Student</th>
+<th class="px-6 py-4 font-semibold text-neutral-600">Company</th>
+<th class="px-6 py-4 font-semibold text-neutral-600">Role</th>
+<th class="px-6 py-4 font-semibold text-neutral-600">Package</th>
+<th class="px-6 py-4 font-semibold text-neutral-600">Status</th>
+<th class="px-6 py-4 font-semibold text-neutral-600 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-neutral-100">
+<tr class="group hover:bg-neutral-50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="" class="w-8 h-8 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuV20ocktuWldNth-yM9LJQdPONxjzsiCYEBLeGRAfJf0iISKTJOWyBEGv-I6INFmmVqfyBzwQMwc3OQKT5YyTNewHYasZqo_3Izfz1Yc9SP9bWc3O2LPMKU_tmBSwjfVnCoXWypj9s36J9p09paEMT9ow9cKLZFitQVfn2gXXbP5fbKCjhOn0-EaCh8JUzcveor0O3G_aCjrLrJq_8-RPZ4oUTTfUDP461Oc6jyYvy1kG5zEy82dwZLYbDtD9bYi5h8ZOadayxl9G"/>
+<div>
+<div class="font-semibold text-neutral-900">Arjun Verma</div>
+<div class="text-xs text-neutral-500">CS • 2024</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-black text-white font-bold text-[10px]">U</div>
+<span class="font-medium">Uber</span>
+</div>
+</td>
+<td class="px-6 py-4 text-neutral-600">SDE-1</td>
+<td class="px-6 py-4 font-mono text-neutral-900">₹38.5 LPA</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                            Offer Released
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-neutral-400 hover:text-black transition-colors"><span class="material-symbols-outlined text-lg">more_horiz</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="" class="w-8 h-8 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9wGP1voTQUKdAGhK_rwAhLxdPahLjj0kezgR7gIXgyImr6fzPD5mZeRjRk2u0J5wslANeC44mzGyvY3UH6RQ7tsO2quaMYx_hI2Z1y0wxrCOlAIy51U5FqA1i9DnuJQN62e_gZ6hUaf56xGNyKZQhVE-Fdpjdfq8IoTUEDBiqwcrmLl1nAipNpUpn1Kve5pSf5kv9cmPBjdsAfUE-zJsWzAG3jLsp1ua6kdN-QDQuukVT6ytTt9BY0BPzTXOz12PpaVpgqiamUvyq"/>
+<div>
+<div class="font-semibold text-neutral-900">Priya Sharma</div>
+<div class="text-xs text-neutral-500">EE • 2024</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-blue-600 text-white font-bold text-[10px]">G</div>
+<span class="font-medium">Goldman Sachs</span>
+</div>
+</td>
+<td class="px-6 py-4 text-neutral-600">Analyst</td>
+<td class="px-6 py-4 font-mono text-neutral-900">₹26.0 LPA</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                            Shortlisted
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-neutral-400 hover:text-black transition-colors"><span class="material-symbols-outlined text-lg">more_horiz</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="" class="w-8 h-8 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUwWTDNMxohURES_IXlsBozpqhyO3-se7T-rXM5uvPxC5Xb_-gAur0Bzl74nbMDF4WA95-4I7oiMLl7JFVg122z6j0db-KedR4_MrSyOheFtfJjDYzC3TzscaKOVWfiWynUgCkCu9B2FoNMRJHGcwWt8yGf_fOgzpVfx0bvze3R7MYe0ZGs-nGCPJ5CYEvJLogaV9aOxuJZbzx2SayHUideKos3Ji7MW8hGa3O48jn5zyyBEYwT-ayXe7WlarpMORwakHmg2kCNEPu"/>
+<div>
+<div class="font-semibold text-neutral-900">Rohan Das</div>
+<div class="text-xs text-neutral-500">ME • 2024</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-red-600 text-white font-bold text-[10px]">T</div>
+<span class="font-medium">Tesla</span>
+</div>
+</td>
+<td class="px-6 py-4 text-neutral-600">Mech Design Eng</td>
+<td class="px-6 py-4 font-mono text-neutral-900">₹18.5 LPA</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                            Interview R2
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-neutral-400 hover:text-black transition-colors"><span class="material-symbols-outlined text-lg">more_horiz</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="" class="w-8 h-8 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCa407n8ATLP8YAQ6FvtC9wAR63SJu4SiRQPa7B_fwA-vx5VP_YVYZMHBJ6pMX69rUmjIElnoWn32cELc3v_n2bfbSCC3difqX78715xmT5sf4ST4rdZ8_xpINuC_2-gBB4qzCocOaEyBArZeqPfSNkKcTix5xOnBruMOJVvGZ8rZom5ECN3_LT6o7-VHMLHLBR65jC3ga1qnTl3Nh4p2RY9FwoyatIGDNOh9kPFED5PjLIfcLctrzjxS9yXEEgM9JZxHu508ftFZW0"/>
+<div>
+<div class="font-semibold text-neutral-900">Sneha K.</div>
+<div class="text-xs text-neutral-500">CS • 2024</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-cyan-600 text-white font-bold text-[10px]">M</div>
+<span class="font-medium">Microsoft</span>
+</div>
+</td>
+<td class="px-6 py-4 text-neutral-600">Product Manager</td>
+<td class="px-6 py-4 font-mono text-neutral-900">₹45.0 LPA</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                            Offer Released
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-neutral-400 hover:text-black transition-colors"><span class="material-symbols-outlined text-lg">more_horiz</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+
+</body></html>
