@@ -44,6 +44,12 @@ const BROADCAST_KEY = "broadcast";
 const BROADCAST_TITLE = "TPO Announcements";
 const BROADCAST_SUBTITLE = "Official placement broadcasts";
 const BROADCAST_AVATAR = "/mitadt.png";
+const DIRECT_ADMIN_DEFAULT_NAME = "Dr. Swati More";
+const DIRECT_ADMIN_DEFAULT_AVATAR = "/mitadt.png";
+
+type AdminProfile = { name: string; avatar_url: string | null };
+type AdminProfileMap = Record<string, AdminProfile>;
+type PublicAdminRow = { id: string; name?: string; avatar_url?: string | null };
 
 function getInitials(value: string): string {
   return value
@@ -65,6 +71,16 @@ function getPreview(message: MessageRow): string {
   return `${prefix}${message.message}`;
 }
 
+function extractSenderNameFromSubject(subject: string | null): string | null {
+  const normalized = subject?.trim() ?? "";
+  if (!normalized.toLowerCase().startsWith("from:")) {
+    return null;
+  }
+
+  const parsed = normalized.replace(/^from:\s*/i, "").trim();
+  return parsed.length > 0 ? parsed : null;
+}
+
 export function StudentMessagesPage() {
   const supabase = useMemo(() => createClient(), []);
 
@@ -76,7 +92,7 @@ export function StudentMessagesPage() {
   const [tab, setTab] = useState<MessageTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedConversationKey, setSelectedConversationKey] = useState<string | null>(null);
-  const [adminProfiles, setAdminProfiles] = useState<Record<string, { name: string; avatar_url: string | null }>>({});
+  const [adminProfiles, setAdminProfiles] = useState<AdminProfileMap>({});
 
   const receiptByMessage = useMemo(() => {
     const map = new Map<string, RecipientRow>();
@@ -151,18 +167,24 @@ export function StudentMessagesPage() {
         .subscribe();
 
       // Fetch Admin Profiles for Display
-      fetch("/api/public/admins")
-        .then(res => res.json())
+      fetch("/api/public/admins", { cache: "no-store" })
+        .then((res) => {
+          if (!res.ok) {
+            return [] as PublicAdminRow[];
+          }
+          return res.json() as Promise<PublicAdminRow[]>;
+        })
         .then(data => {
           if (Array.isArray(data)) {
-            const profiles: Record<string, { name: string; avatar_url: string | null }> = {};
-            data.forEach((admin: any) => {
-              profiles[admin.id] = { name: admin.name, avatar_url: admin.avatar_url };
+            const profiles: AdminProfileMap = {};
+            data.forEach((admin) => {
+              const name = admin.name?.trim() || DIRECT_ADMIN_DEFAULT_NAME;
+              profiles[admin.id] = { name, avatar_url: admin.avatar_url ?? null };
             });
             setAdminProfiles(profiles);
           }
         })
-        .catch(err => console.error("Admin fetch error:", err));
+        .catch(() => undefined);
     };
 
     void init();
@@ -184,9 +206,6 @@ export function StudentMessagesPage() {
       grouped.set(key, current);
     }
 
-    const directConversations = [...grouped.keys()].filter((key) => key !== BROADCAST_KEY);
-    const showSenderCode = directConversations.length > 1;
-
     const result: Conversation[] = [];
 
     for (const [key, messageRows] of grouped.entries()) {
@@ -207,14 +226,15 @@ export function StudentMessagesPage() {
       }, 0);
 
       const admin = !isBroadcast ? adminProfiles[key] : null;
+      const inferredName = !isBroadcast ? extractSenderNameFromSubject(lastMessage.subject) : null;
 
       const title = isBroadcast
         ? BROADCAST_TITLE
-        : admin?.name || (showSenderCode ? `Office • ${key.slice(0, 6).toUpperCase()}` : "Placement Office");
+        : admin?.name || inferredName || DIRECT_ADMIN_DEFAULT_NAME;
 
       const avatarUrl = isBroadcast
         ? BROADCAST_AVATAR
-        : admin?.avatar_url || (admin?.name ? `https://api.dicebear.com/7.x/initials/svg?seed=${admin.name}&backgroundColor=6366f1` : null);
+        : admin?.avatar_url || DIRECT_ADMIN_DEFAULT_AVATAR;
 
       result.push({
         key,
@@ -231,7 +251,7 @@ export function StudentMessagesPage() {
     return result.sort(
       (a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime()
     );
-  }, [messages, receiptByMessage]);
+  }, [messages, receiptByMessage, adminProfiles]);
 
   const filteredConversations = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

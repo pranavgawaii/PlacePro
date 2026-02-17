@@ -23,11 +23,35 @@ export async function GET() {
         return NextResponse.json({ error: rolesError.message }, { status: 500 });
     }
 
-    // Fetch user details from auth.users (requires service role)
-    const { data: { users }, error: usersError } = await adminClient.auth.admin.listUsers();
+    // Fetch all auth users (paginated) to avoid missing admins when user count > default page size.
+    const users: Array<{
+        id: string;
+        user_metadata?: { name?: string; avatar_url?: string | null } | null;
+    }> = [];
+    const perPage = 200;
+    let page = 1;
 
-    if (usersError) {
-        return NextResponse.json({ error: usersError.message }, { status: 500 });
+    while (true) {
+        const { data, error: usersError } = await adminClient.auth.admin.listUsers({
+            page,
+            perPage,
+        });
+
+        if (usersError) {
+            return NextResponse.json({ error: usersError.message }, { status: 500 });
+        }
+
+        const batch = data.users ?? [];
+        users.push(...batch);
+
+        if (batch.length < perPage) {
+            break;
+        }
+
+        page += 1;
+        if (page > 20) {
+            break;
+        }
     }
 
     const publicAdminInfo = adminRoles.map(role => {
