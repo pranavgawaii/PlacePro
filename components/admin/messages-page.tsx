@@ -41,12 +41,13 @@ type MessageInsert = Database["public"]["Tables"]["messages"]["Insert"];
 type RecipientRow = Database["public"]["Tables"]["message_recipients"]["Row"];
 type StudentRow = Database["public"]["Tables"]["students"]["Row"];
 
-type MessageTab = "all" | "broadcasts" | "direct";
+type MessageTab = "all" | "broadcasts" | "direct" | "help";
 type MessageType = "broadcast" | "direct";
 
 type Conversation = {
   key: string;
   isBroadcast: boolean;
+  isHelp: boolean;
   title: string;
   subtitle: string;
   avatarUrl: string | null;
@@ -54,12 +55,34 @@ type Conversation = {
   messages: MessageRow[];
   seenCount: number;
   totalRecipients: number;
+  unreadCount: number;
 };
 
 const BROADCAST_KEY = "broadcast";
 const BROADCAST_TITLE = "TPO Announcements";
 const BROADCAST_SUBTITLE = "Broadcast channel";
-const BROADCAST_AVATAR = "/mitadt.png";
+const BROADCAST_AVATAR = "/brand/mitadt.png";
+
+function safeFormatDate(value: string | null | undefined, pattern: string, fallback = "—"): string {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+
+  try {
+    return format(parsed, pattern);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeSubject(subject: string | null): string {
+  return (subject ?? "").replace(/^\[HELP\]\s*/i, "").trim();
+}
 
 function getInitials(value: string): string {
   return value
@@ -72,8 +95,13 @@ function getInitials(value: string): string {
 }
 
 function getPreview(message: MessageRow): string {
-  const prefix = message.subject?.trim() ? `${message.subject.trim()}: ` : "";
+  const cleanSubject = normalizeSubject(message.subject);
+  const prefix = cleanSubject ? `${cleanSubject}: ` : "";
   return `${prefix}${message.message}`;
+}
+
+function isHelpSubject(subject: string | null): boolean {
+  return (subject ?? "").trim().toUpperCase().startsWith("[HELP]");
 }
 
 export function AdminMessagesPage() {
@@ -136,7 +164,7 @@ export function AdminMessagesPage() {
         supabase
           .from("messages")
           .select("*")
-          .eq("sender_id", user.id)
+          .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
           .order("created_at", { ascending: false })
       ]);
 
@@ -219,7 +247,11 @@ export function AdminMessagesPage() {
     const grouped = new Map<string, MessageRow[]>();
 
     for (const message of messages) {
-      const key = message.is_broadcast ? BROADCAST_KEY : message.recipient_id ?? `unknown-${message.id}`;
+      const key = message.is_broadcast
+        ? BROADCAST_KEY
+        : message.sender_id === adminUserId
+          ? (message.recipient_id ?? `unknown-${message.id}`)
+          : message.sender_id;
       const current = grouped.get(key) ?? [];
       current.push(message);
       grouped.set(key, current);
@@ -238,44 +270,59 @@ export function AdminMessagesPage() {
       }
 
       const isBroadcast = key === BROADCAST_KEY;
+      const unreadCount = sortedDesc.reduce((count, message) => {
+        const ownRecipientRow = (recipientMap.get(message.id) ?? []).find(
+          (recipient) => recipient.recipient_id === adminUserId
+        );
+        return ownRecipientRow && !ownRecipientRow.read_at ? count + 1 : count;
+      }, 0);
 
       if (isBroadcast) {
         const stats = recipientMap.get(lastMessage.id) ?? [];
         result.push({
           key,
           isBroadcast,
+          isHelp: false,
           title: BROADCAST_TITLE,
           subtitle: BROADCAST_SUBTITLE,
           avatarUrl: BROADCAST_AVATAR,
           lastMessage,
           messages: sortedDesc,
           seenCount: stats.filter((row) => Boolean(row.read_at)).length,
-          totalRecipients: stats.length
+          totalRecipients: stats.length,
+          unreadCount
         });
         continue;
       }
 
       const student = studentsByUserId.get(key);
+      const helpThread = sortedDesc.some(
+        (message) => message.sender_id !== adminUserId && isHelpSubject(message.subject)
+      );
 
       result.push({
         key,
         isBroadcast,
+        isHelp: helpThread,
         title: student?.name ?? "Student",
-        subtitle: student
-          ? `${student.prn ?? "PRN pending"} • ${student.branch ?? "Branch pending"}`
-          : "Direct message",
+        subtitle: helpThread
+          ? "Support request from student"
+          : student
+            ? `${student.prn ?? "PRN pending"} • ${student.branch ?? "Branch pending"}`
+            : "Direct message",
         avatarUrl: student?.avatar_url ?? null,
         lastMessage,
         messages: sortedDesc,
         seenCount: 0,
-        totalRecipients: 0
+        totalRecipients: 0,
+        unreadCount
       });
     }
 
     return result.sort(
       (a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime()
     );
-  }, [messages, recipientMap, studentsByUserId]);
+  }, [adminUserId, messages, recipientMap, studentsByUserId]);
 
   const filteredConversations = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -283,7 +330,11 @@ export function AdminMessagesPage() {
     return conversations.filter((conversation) => {
       const matchesTab =
         tab === "all" ||
-        (tab === "broadcasts" ? conversation.isBroadcast : !conversation.isBroadcast);
+        (tab === "broadcasts"
+          ? conversation.isBroadcast
+          : tab === "help"
+            ? conversation.isHelp
+            : !conversation.isBroadcast && !conversation.isHelp);
 
       const matchesQuery =
         !query ||
@@ -324,6 +375,44 @@ export function AdminMessagesPage() {
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
   }, [selectedConversation]);
+
+  const unreadReceiptIdsForSelected = useMemo(() => {
+    if (!selectedConversation || !adminUserId) {
+      return [] as string[];
+    }
+
+    return selectedConversation.messages
+      .flatMap((message) => recipientMap.get(message.id) ?? [])
+      .filter((recipient) => recipient.recipient_id === adminUserId && !recipient.read_at)
+      .map((recipient) => recipient.id);
+  }, [adminUserId, recipientMap, selectedConversation]);
+
+  useEffect(() => {
+    if (!adminUserId || unreadReceiptIdsForSelected.length === 0) {
+      return;
+    }
+
+    const markRead = async () => {
+      const timestamp = new Date().toISOString();
+      const { error } = await supabase
+        .from("message_recipients")
+        .update({ read_at: timestamp })
+        .in("id", unreadReceiptIdsForSelected)
+        .eq("recipient_id", adminUserId);
+
+      if (error) {
+        return;
+      }
+
+      setRecipients((previous) =>
+        previous.map((row) =>
+          unreadReceiptIdsForSelected.includes(row.id) ? { ...row, read_at: timestamp } : row
+        )
+      );
+    };
+
+    void markRead();
+  }, [adminUserId, supabase, unreadReceiptIdsForSelected]);
 
   const resetComposer = useCallback(() => {
     setComposerOpen(false);
@@ -418,24 +507,24 @@ export function AdminMessagesPage() {
 
   return (
     <section className="mx-auto h-[calc(100vh-92px)] w-full max-w-7xl p-4 font-sans">
-      <div className="grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_20px_50px_-30px_rgba(37,99,235,0.45)] lg:grid-cols-[360px_1fr]">
+      <div className="grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_16px_42px_-34px_rgba(15,23,42,0.45)] transition-shadow duration-300 lg:grid-cols-[360px_1fr]">
         <aside
           className={cn(
             "flex min-h-0 flex-col border-r border-neutral-200 bg-white",
             selectedConversation ? "hidden lg:flex" : "flex"
           )}
         >
-          <div className="border-b border-neutral-200 bg-gradient-to-r from-blue-600 to-blue-500 p-4 text-white">
+          <div className="border-b border-neutral-200 bg-white p-4">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100">Admin Chat Desk</p>
-                <h1 className="text-xl font-semibold">Messages</h1>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Admin Chat Desk</p>
+                <h1 className="text-xl font-semibold tracking-tight text-neutral-900">Messages</h1>
               </div>
               <Button
                 type="button"
                 size="icon"
                 onClick={() => setComposerOpen(true)}
-                className="h-9 w-9 rounded-xl bg-white text-blue-600 hover:bg-blue-50"
+                className="h-9 w-9 rounded-xl border border-neutral-200 bg-white text-blue-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-sm"
                 aria-label="Compose message"
               >
                 <Plus className="h-4 w-4" />
@@ -443,12 +532,12 @@ export function AdminMessagesPage() {
             </div>
 
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-200" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
               <Input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search broadcasts or students"
-                className="h-10 border-white/20 bg-white/10 pl-9 text-white placeholder:text-blue-100 focus-visible:ring-white"
+                className="h-10 border-neutral-200 bg-white pl-9 text-neutral-900 placeholder:text-neutral-400 transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-blue-600"
                 aria-label="Search messages"
               />
             </div>
@@ -460,10 +549,31 @@ export function AdminMessagesPage() {
               onValueChange={(value) => setTab(value as MessageTab)}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-3 bg-neutral-100">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="broadcasts">Broadcasts</TabsTrigger>
-                <TabsTrigger value="direct">Direct</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-4 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1">
+                <TabsTrigger
+                  value="all"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                >
+                  All
+                </TabsTrigger>
+                <TabsTrigger
+                  value="broadcasts"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                >
+                  Broadcasts
+                </TabsTrigger>
+                <TabsTrigger
+                  value="direct"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                >
+                  Direct
+                </TabsTrigger>
+                <TabsTrigger
+                  value="help"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                >
+                  Help
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -478,18 +588,29 @@ export function AdminMessagesPage() {
               <div className="divide-y divide-neutral-100">
                 {filteredConversations.map((conversation) => {
                   const isSelected = selectedConversationKey === conversation.key;
+                  const lastMessageRecipients = recipientMap.get(conversation.lastMessage.id) ?? [];
+                  const lastDirectMessageSeen = Boolean(
+                    lastMessageRecipients.find((recipient) => recipient.recipient_id !== adminUserId)?.read_at
+                  );
                   return (
                     <button
                       key={conversation.key}
                       type="button"
                       onClick={() => setSelectedConversationKey(conversation.key)}
                       className={cn(
-                        "w-full px-4 py-3 text-left transition",
-                        isSelected ? "bg-blue-50" : "hover:bg-neutral-50"
+                        "group relative w-full px-4 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-inset",
+                        isSelected ? "bg-neutral-50" : "hover:bg-neutral-50"
                       )}
                     >
+                      <span
+                        className={cn(
+                          "absolute inset-y-2 left-0 w-1 rounded-r-full bg-blue-600 transition-all duration-200",
+                          isSelected ? "opacity-100" : "opacity-0"
+                        )}
+                        aria-hidden="true"
+                      />
                       <div className="flex items-start gap-3">
-                        <Avatar className="mt-0.5 h-11 w-11 border border-neutral-200">
+                        <Avatar className="mt-0.5 h-11 w-11 border border-neutral-200 transition-transform duration-200 group-hover:scale-[1.02]">
                           <AvatarImage src={conversation.avatarUrl ?? undefined} />
                           <AvatarFallback className="bg-black text-white">
                             {conversation.isBroadcast ? <Megaphone className="h-4 w-4" /> : getInitials(conversation.title)}
@@ -498,9 +619,9 @@ export function AdminMessagesPage() {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-sm font-semibold text-neutral-900">{conversation.title}</p>
+                            <p className="truncate text-sm font-semibold tracking-tight text-neutral-900">{conversation.title}</p>
                             <span className="shrink-0 text-xs text-neutral-500">
-                              {format(new Date(conversation.lastMessage.created_at), "h:mm a")}
+                              {safeFormatDate(conversation.lastMessage.created_at, "h:mm a")}
                             </span>
                           </div>
 
@@ -511,12 +632,22 @@ export function AdminMessagesPage() {
                               {getPreview(conversation.lastMessage)}
                             </p>
                             {conversation.isBroadcast ? (
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                              <Badge variant="secondary" className="border border-neutral-200 bg-neutral-50 text-neutral-700">
                                 {conversation.seenCount}/{conversation.totalRecipients} seen
                               </Badge>
+                            ) : conversation.isHelp ? (
+                              conversation.unreadCount > 0 ? (
+                                <Badge variant="secondary" className="border border-blue-200 bg-blue-50 text-blue-700">
+                                  {conversation.unreadCount} new
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="border border-neutral-200 bg-neutral-50 text-neutral-700">
+                                  help
+                                </Badge>
+                              )
                             ) : (
-                              <Badge variant="secondary" className="bg-neutral-100 text-neutral-700">
-                                direct
+                              <Badge variant="secondary" className="border border-neutral-200 bg-neutral-50 text-neutral-700">
+                                {lastDirectMessageSeen ? "seen" : "not seen"}
                               </Badge>
                             )}
                           </div>
@@ -532,18 +663,18 @@ export function AdminMessagesPage() {
 
         <main
           className={cn(
-            "min-h-0 flex-col bg-gradient-to-b from-white via-blue-50/30 to-white",
+            "min-h-0 flex-col bg-white",
             selectedConversation ? "flex" : "hidden lg:flex"
           )}
         >
           {selectedConversation ? (
             <>
-              <header className="flex items-center justify-between border-b border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur">
+              <header className="flex items-center justify-between border-b border-neutral-200 bg-white px-4 py-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-lg lg:hidden"
+                    className="h-8 w-8 rounded-lg text-neutral-600 hover:bg-neutral-100 lg:hidden"
                     onClick={() => setSelectedConversationKey(null)}
                     aria-label="Back to conversations"
                   >
@@ -558,19 +689,26 @@ export function AdminMessagesPage() {
                   </Avatar>
 
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-neutral-900">{selectedConversation.title}</p>
+                    <p className="truncate text-sm font-semibold tracking-tight text-neutral-900">{selectedConversation.title}</p>
                     <p className="truncate text-xs text-neutral-500">{selectedConversation.subtitle}</p>
                   </div>
                 </div>
 
-                <Button
-                  type="button"
-                  onClick={() => setComposerOpen(true)}
-                  className="h-9 rounded-lg bg-blue-600 px-4 text-white hover:bg-blue-700"
-                >
-                  <Plus className="mr-1.5 h-4 w-4" />
-                  New
-                </Button>
+                <div className="flex items-center gap-2">
+                  {selectedConversation.isHelp ? (
+                    <Badge variant="secondary" className="border border-blue-200 bg-blue-50 text-blue-700">
+                      Help Inbox
+                    </Badge>
+                  ) : null}
+                  <Button
+                    type="button"
+                    onClick={() => setComposerOpen(true)}
+                    className="h-9 rounded-lg bg-blue-600 px-4 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-sm"
+                  >
+                    <Plus className="mr-1.5 h-4 w-4" />
+                    New
+                  </Button>
+                </div>
               </header>
 
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
@@ -579,52 +717,126 @@ export function AdminMessagesPage() {
                     const previousMessage = threadMessages[index - 1];
                     const showDateLabel =
                       !previousMessage ||
-                      format(new Date(previousMessage.created_at), "yyyy-MM-dd") !==
-                        format(new Date(message.created_at), "yyyy-MM-dd");
+                      safeFormatDate(previousMessage.created_at, "yyyy-MM-dd") !==
+                        safeFormatDate(message.created_at, "yyyy-MM-dd");
 
                     const messageRecipients = recipientMap.get(message.id) ?? [];
                     const seenCount = messageRecipients.filter((recipient) => Boolean(recipient.read_at)).length;
+                    const isOutgoing = message.sender_id === adminUserId;
+                    const directRecipientRow = messageRecipients.find(
+                      (recipient) => recipient.recipient_id !== adminUserId
+                    );
+                    const directSeen = Boolean(directRecipientRow?.read_at);
+                    const recipientDetails = messageRecipients
+                      .map((recipient) => {
+                        const student = studentsByUserId.get(recipient.recipient_id);
+                        return {
+                          id: recipient.id,
+                          name: student?.name ?? "Student",
+                          prn: student?.prn ?? "PRN pending",
+                          readAt: recipient.read_at
+                        };
+                      })
+                      .sort((a, b) => {
+                        const readWeight = Number(Boolean(b.readAt)) - Number(Boolean(a.readAt));
+                        if (readWeight !== 0) return readWeight;
+                        return a.name.localeCompare(b.name);
+                      });
 
                     return (
                       <div key={message.id} className="space-y-2">
                         {showDateLabel ? (
                           <div className="flex justify-center">
-                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                              {format(new Date(message.created_at), "PPP")}
+                            <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-medium text-neutral-600">
+                              {safeFormatDate(message.created_at, "PPP")}
                             </span>
                           </div>
                         ) : null}
 
-                        <div className="flex justify-end">
+                        <div className={cn("flex", isOutgoing || message.is_broadcast ? "justify-end" : "justify-start")}>
                           <article
                             className={cn(
-                              "max-w-[88%] rounded-2xl border px-4 py-3 shadow-sm",
+                              "max-w-[88%] rounded-2xl border px-4 py-3 shadow-sm transition-all duration-200",
                               message.is_broadcast
-                                ? "rounded-br-md border-blue-700 bg-blue-600 text-white"
-                                : "rounded-br-md border-black bg-black text-white"
+                                ? "rounded-br-md border border-blue-200 border-r-4 border-r-blue-600 bg-white text-neutral-900"
+                                : isOutgoing
+                                  ? "rounded-br-md border border-neutral-200 border-r-4 border-r-blue-500 bg-white text-neutral-900"
+                                  : "rounded-bl-md border border-neutral-200 border-l-4 border-l-neutral-400 bg-neutral-50 text-neutral-900"
                             )}
                           >
                             {message.subject ? (
-                              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-100">
-                                {message.subject}
+                              <p className={cn("mb-2 text-xs font-semibold uppercase tracking-wide", message.is_broadcast ? "text-blue-700" : "text-neutral-600")}>
+                                {normalizeSubject(message.subject)}
                               </p>
                             ) : null}
 
                             <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.message}</p>
 
                             <div className="mt-2 flex items-center justify-end gap-1.5 text-[11px]">
-                              <span className={message.is_broadcast ? "text-blue-100" : "text-neutral-300"}>
-                                {format(new Date(message.created_at), "h:mm a")}
+                              <span className="text-neutral-500">
+                                {safeFormatDate(message.created_at, "h:mm a")}
                               </span>
                               {message.is_broadcast ? (
-                                <span className="inline-flex items-center gap-1 text-blue-100">
-                                  <CheckCheck className="h-3.5 w-3.5" />
+                                <span className="inline-flex items-center gap-1 text-blue-600">
+                                  <CheckCheck className="h-3.5 w-3.5 text-blue-600" />
                                   {seenCount}/{messageRecipients.length}
                                 </span>
+                              ) : !isOutgoing ? (
+                                <Badge variant="secondary" className="border border-neutral-200 bg-white text-neutral-700">
+                                  Received
+                                </Badge>
                               ) : (
-                                <CheckCheck className="h-3.5 w-3.5 text-neutral-300" />
+                                <Badge
+                                  variant="secondary"
+                                  className={cn(
+                                    "border text-[10px] font-medium",
+                                    directSeen
+                                      ? "border-blue-200 bg-blue-50 text-blue-700"
+                                      : "border-neutral-200 bg-neutral-50 text-neutral-600"
+                                  )}
+                                >
+                                  {directSeen ? "Seen" : "Not seen"}
+                                </Badge>
                               )}
                             </div>
+
+                            {message.is_broadcast && recipientDetails.length > 0 ? (
+                              <details className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50/80 p-2">
+                                <summary className="cursor-pointer list-none text-[11px] font-semibold text-neutral-700">
+                                  Seen by {seenCount}/{recipientDetails.length} students
+                                </summary>
+                                <div className="mt-2 max-h-32 space-y-1 overflow-y-auto pr-1">
+                                  {recipientDetails.map((recipient) => (
+                                    <div
+                                      key={recipient.id}
+                                      className="flex items-center justify-between rounded-md border border-neutral-200 bg-white px-2 py-1"
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="truncate text-[11px] font-medium text-neutral-800">{recipient.name}</p>
+                                        <p className="truncate text-[10px] text-neutral-500">{recipient.prn}</p>
+                                      </div>
+                                      <Badge
+                                        variant="secondary"
+                                        className={cn(
+                                          "border text-[10px] font-medium",
+                                          recipient.readAt
+                                            ? "border-blue-200 bg-blue-50 text-blue-700"
+                                            : "border-neutral-200 bg-neutral-50 text-neutral-600"
+                                        )}
+                                      >
+                                        {recipient.readAt ? `Seen ${safeFormatDate(recipient.readAt, "h:mm a", "seen")}` : "Not seen"}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            ) : null}
+
+                            {!message.is_broadcast && isOutgoing ? (
+                              <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-[11px] text-neutral-700">
+                                Recipient {directSeen ? `seen at ${safeFormatDate(directRecipientRow?.read_at, "h:mm a", "—")}` : "has not seen this message yet"}
+                              </div>
+                            ) : null}
                           </article>
                         </div>
                       </div>
@@ -635,11 +847,13 @@ export function AdminMessagesPage() {
 
               <footer className="border-t border-neutral-200 bg-white px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-neutral-500">Official communication channel</p>
+                  <p className="text-xs text-neutral-500">
+                    {selectedConversation.isHelp ? "Student support inbox" : "Official communication channel"}
+                  </p>
                   <Button
                     type="button"
                     onClick={() => setComposerOpen(true)}
-                    className="h-10 rounded-lg bg-blue-600 px-5 text-white hover:bg-blue-700"
+                    className="h-10 rounded-lg bg-blue-600 px-5 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-sm"
                   >
                     <Send className="mr-2 h-4 w-4" />
                     Compose
@@ -649,7 +863,7 @@ export function AdminMessagesPage() {
             </>
           ) : (
             <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-              <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-100 p-4 text-blue-700">
+              <div className="mb-4 rounded-2xl border border-neutral-200 bg-white p-4 text-blue-700">
                 <MessageCircle className="h-8 w-8" />
               </div>
               <h2 className="text-xl font-semibold text-neutral-900">Select a conversation</h2>
@@ -672,17 +886,17 @@ export function AdminMessagesPage() {
 
           <form onSubmit={handleSend} className="space-y-5">
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
                 <Label>Message Type</Label>
-                <div className="grid grid-cols-2 gap-2 rounded-lg border border-neutral-200 bg-neutral-50 p-1">
+                <div className="grid grid-cols-2 gap-2 rounded-lg border border-neutral-200 bg-white p-1">
                   <button
                     type="button"
                     onClick={() => setMessageType("broadcast")}
                     className={cn(
-                      "rounded-md px-3 py-2 text-sm font-medium transition",
+                      "rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600",
                       messageType === "broadcast"
                         ? "bg-blue-600 text-white"
-                        : "text-neutral-700 hover:bg-white"
+                        : "text-neutral-700 hover:bg-neutral-50"
                     )}
                   >
                     Broadcast
@@ -691,10 +905,10 @@ export function AdminMessagesPage() {
                     type="button"
                     onClick={() => setMessageType("direct")}
                     className={cn(
-                      "rounded-md px-3 py-2 text-sm font-medium transition",
+                      "rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600",
                       messageType === "direct"
-                        ? "bg-black text-white"
-                        : "text-neutral-700 hover:bg-white"
+                        ? "bg-blue-600 text-white"
+                        : "text-neutral-700 hover:bg-neutral-50"
                     )}
                   >
                     Direct
@@ -702,7 +916,7 @@ export function AdminMessagesPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
                 <Label>Recipient</Label>
                 {messageType === "broadcast" ? (
                   <div className="flex h-10 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-sm text-blue-700">
@@ -713,7 +927,7 @@ export function AdminMessagesPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-10 w-full justify-between"
+                    className="h-10 w-full justify-between border-neutral-300"
                     onClick={() => setStudentPickerOpen(true)}
                   >
                     {selectedStudent ? (
@@ -736,7 +950,7 @@ export function AdminMessagesPage() {
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
                 placeholder="e.g. Aptitude test schedule"
-                className="h-10"
+                className="h-10 border-neutral-300 focus-visible:ring-2 focus-visible:ring-blue-600"
               />
             </div>
 
@@ -747,7 +961,7 @@ export function AdminMessagesPage() {
                 value={messageBody}
                 onChange={(event) => setMessageBody(event.target.value)}
                 placeholder="Write your message..."
-                className="min-h-40"
+                className="min-h-40 border-neutral-300 focus-visible:ring-2 focus-visible:ring-blue-600"
               />
             </div>
 
@@ -799,7 +1013,7 @@ export function AdminMessagesPage() {
                           setStudentFilterQuery("");
                         }}
                         className={cn(
-                          "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition",
+                          "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-inset",
                           isSelected ? "bg-blue-50" : "hover:bg-neutral-50"
                         )}
                       >

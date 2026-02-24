@@ -277,12 +277,9 @@ export default function CompanyDetailPage() {
                             </div>
 
                             <div className="prose prose-neutral prose-sm max-w-none text-neutral-600">
-                                <div
-                                    dangerouslySetInnerHTML={{
-                                        __html: (company.description || "No specific job description has been provided for this opportunity. Please check the company website for more details.")
-                                            .replace(/\n/g, '<br/>')
-                                    }}
-                                />
+                                <p className="whitespace-pre-line">
+                                    {company.description || "No specific job description has been provided for this opportunity. Please check the company website for more details."}
+                                </p>
 
                                 {company.name.toLowerCase().includes("tcs") && (
                                     <div className="mt-6 pt-6 border-t border-neutral-100 space-y-4">
@@ -521,4 +518,3 @@ export default function CompanyDetailPage() {
         </div>
     );
 }
-

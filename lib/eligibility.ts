@@ -29,19 +29,10 @@ type StudentRow = Database["public"]["Tables"]["students"]["Row"];
 
 export function computeEligibility(student: StudentRow, criteria: CompanyCriteria): EligibilityResult {
   const reasons: string[] = [];
-  const warnings: string[] = [];
 
-  // Profile-related issues are now Warnings, not blockers for "Eligibility" (Academic)
+  // Keep parity with DB check_eligibility: incomplete profile blocks eligibility.
   if (!student.profile_complete) {
-    const missingDocs = (student.documents_uploaded ?? 0) < 6;
-    const missingAcademics = !(student.tenth_percentage && student.twelfth_percentage && student.overall_cgpa);
-    const missingInfo = !(student.name && student.email && student.prn && student.branch);
-
-    if (missingInfo) warnings.push("Missing basic profile information");
-    if (missingAcademics) warnings.push("Missing academic scores");
-    if (missingDocs) warnings.push("Mandatory marksheets missing");
-
-    if (warnings.length === 0) warnings.push("Profile awaiting re-verification");
+    reasons.push("Profile is incomplete");
   }
 
   // Hard eligibility criteria
@@ -67,6 +58,6 @@ export function computeEligibility(student: StudentRow, criteria: CompanyCriteri
 
   return {
     eligible: reasons.length === 0,
-    reasons: [...reasons, ...warnings]
+    reasons
   };
 }

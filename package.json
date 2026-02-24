@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "preview": "next build && next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "predeploy:check": "npm run typecheck && npm run lint && npm run build"
+    "clean:next": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true,maxRetries:10,retryDelay:100})\"",
+    "lint": "next lint --max-warnings 0",
+    "typegen": "next typegen",
+    "typecheck": "npm run typegen && tsc --noEmit",
+    "certify": "node scripts/certify.mjs",
+    "predeploy:check": "npm run typecheck && npm run lint && npm run certify && npm run clean:next && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

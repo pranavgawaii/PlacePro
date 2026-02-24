@@ -14,17 +14,16 @@ type JsZipConstructor = new () => {
   generateAsync: (options: { type: "nodebuffer" }) => Promise<Buffer>;
 };
 
-function loadJsZip() {
+async function loadJsZip() {
   try {
-    const runtimeRequire = eval("require") as NodeRequire;
-    const loaded = runtimeRequire("jszip") as JsZipConstructor | { default?: JsZipConstructor };
+    const loaded = await import("jszip");
 
-    if (typeof loaded === "function") {
-      return loaded;
+    if (typeof loaded.default === "function") {
+      return loaded.default as unknown as JsZipConstructor;
     }
 
-    if (loaded.default && typeof loaded.default === "function") {
-      return loaded.default;
+    if (typeof loaded === "function") {
+      return loaded as unknown as JsZipConstructor;
     }
 
     return null;
@@ -75,7 +74,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const JSZip = loadJsZip();
+  const JSZip = await loadJsZip();
   if (!JSZip) {
     return NextResponse.json(
       { error: "Resume export dependency is not installed. Install jszip and redeploy." },

@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   Bell,
   CheckCheck,
   ChevronLeft,
+  LifeBuoy,
+  Mail,
   Inbox,
   Megaphone,
   MessageCircle,
@@ -17,9 +19,12 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Database } from "@/types/database.types";
@@ -27,7 +32,7 @@ import { Database } from "@/types/database.types";
 type MessageRow = Database["public"]["Tables"]["messages"]["Row"];
 type RecipientRow = Database["public"]["Tables"]["message_recipients"]["Row"];
 
-type MessageTab = "all" | "broadcasts" | "direct";
+type MessageTab = "all" | "broadcasts" | "direct" | "help";
 
 type Conversation = {
   key: string;
@@ -43,13 +48,32 @@ type Conversation = {
 const BROADCAST_KEY = "broadcast";
 const BROADCAST_TITLE = "TPO Announcements";
 const BROADCAST_SUBTITLE = "Official placement broadcasts";
-const BROADCAST_AVATAR = "/mitadt.png";
+const BROADCAST_AVATAR = "/brand/mitadt.png";
 const DIRECT_ADMIN_DEFAULT_NAME = "Dr. Swati More";
-const DIRECT_ADMIN_DEFAULT_AVATAR = "/mitadt.png";
+const DIRECT_ADMIN_DEFAULT_AVATAR = "/brand/mitadt.png";
+const SUPPORT_GMAIL_COMPOSE_URL =
+  "https://mail.google.com/mail/?view=cm&fs=1&to=admin@placepro.in&su=PlacePro%20Support%20Request";
 
 type AdminProfile = { name: string; avatar_url: string | null };
 type AdminProfileMap = Record<string, AdminProfile>;
 type PublicAdminRow = { id: string; name?: string; avatar_url?: string | null };
+
+function safeFormatDate(value: string | null | undefined, pattern: string, fallback = "—"): string {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+
+  try {
+    return format(parsed, pattern);
+  } catch {
+    return fallback;
+  }
+}
 
 function getInitials(value: string): string {
   return value
@@ -62,7 +86,7 @@ function getInitials(value: string): string {
 }
 
 function getPreview(message: MessageRow): string {
-  let subject = message.subject?.trim() || "";
+  let subject = (message.subject ?? "").replace(/^\[HELP\]\s*/i, "").trim();
   // Strip redundant "From: Dr. Swati More" or similar prefixes
   if (subject.toLowerCase().startsWith("from:")) {
     subject = "";
@@ -93,6 +117,10 @@ export function StudentMessagesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedConversationKey, setSelectedConversationKey] = useState<string | null>(null);
   const [adminProfiles, setAdminProfiles] = useState<AdminProfileMap>({});
+  const [supportDialogOpen, setSupportDialogOpen] = useState(false);
+  const [supportSubject, setSupportSubject] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportSending, setSupportSending] = useState(false);
 
   const receiptByMessage = useMemo(() => {
     const map = new Map<string, RecipientRow>();
@@ -259,7 +287,11 @@ export function StudentMessagesPage() {
     return conversations.filter((conversation) => {
       const matchesTab =
         tab === "all" ||
-        (tab === "broadcasts" ? conversation.isBroadcast : !conversation.isBroadcast);
+        (tab === "broadcasts"
+          ? conversation.isBroadcast
+          : tab === "help"
+            ? false
+            : !conversation.isBroadcast);
 
       const matchesQuery =
         !query ||
@@ -272,6 +304,11 @@ export function StudentMessagesPage() {
   }, [conversations, searchQuery, tab]);
 
   useEffect(() => {
+    if (tab === "help") {
+      setSelectedConversationKey(null);
+      return;
+    }
+
     if (filteredConversations.length === 0) {
       setSelectedConversationKey(null);
       return;
@@ -283,7 +320,7 @@ export function StudentMessagesPage() {
     ) {
       setSelectedConversationKey(filteredConversations[0].key);
     }
-  }, [filteredConversations, selectedConversationKey]);
+  }, [filteredConversations, selectedConversationKey, tab]);
 
   const selectedConversation = useMemo(() => {
     if (!selectedConversationKey) {
@@ -340,6 +377,55 @@ export function StudentMessagesPage() {
     void markRead();
   }, [currentUserId, supabase, unreadReceiptIdsForSelected]);
 
+  const handleSupportSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      const trimmedSubject = supportSubject.trim();
+      const trimmedMessage = supportMessage.trim();
+
+      if (trimmedSubject.length < 3) {
+        toast.error("Please add a clear subject");
+        return;
+      }
+
+      if (trimmedMessage.length < 10) {
+        toast.error("Please describe the issue in more detail");
+        return;
+      }
+
+      setSupportSending(true);
+
+      try {
+        const response = await fetch("/api/student/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject: trimmedSubject,
+            message: trimmedMessage
+          })
+        });
+
+        const payload = (await response.json().catch(() => ({}))) as { error?: string; success?: boolean };
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error ?? "Unable to send support request");
+        }
+
+        toast.success("Your support request has been sent to the placement team");
+        setSupportDialogOpen(false);
+        setSupportSubject("");
+        setSupportMessage("");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to send support request";
+        toast.error(message);
+      } finally {
+        setSupportSending(false);
+      }
+    },
+    [supportMessage, supportSubject]
+  );
+
   if (loading) {
     return (
       <section className="mx-auto h-[calc(100vh-92px)] w-full max-w-7xl p-4 font-sans">
@@ -359,26 +445,26 @@ export function StudentMessagesPage() {
 
   return (
     <section className="mx-auto h-[calc(100vh-92px)] w-full max-w-7xl p-4 font-sans">
-      <div className="grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_20px_50px_-30px_rgba(37,99,235,0.45)] lg:grid-cols-[360px_1fr]">
+      <div className="grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_16px_42px_-34px_rgba(15,23,42,0.45)] lg:grid-cols-[360px_1fr]">
         <aside
           className={cn(
             "flex min-h-0 flex-col border-r border-neutral-200 bg-white",
-            selectedConversation ? "hidden lg:flex" : "flex"
+            tab === "help" ? "hidden lg:flex" : selectedConversation ? "hidden lg:flex" : "flex"
           )}
         >
-          <div className="border-b border-neutral-200 bg-gradient-to-r from-blue-600 to-blue-500 p-4 text-white">
+          <div className="border-b border-neutral-200 bg-white p-4">
             <div className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-100">Student Inbox</p>
-              <h1 className="text-xl font-semibold">Messages</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Student Inbox</p>
+              <h1 className="text-xl font-semibold text-neutral-900">Messages</h1>
             </div>
 
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-200" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
               <Input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search announcements"
-                className="h-10 border-white/20 bg-white/10 pl-9 text-white placeholder:text-blue-100 focus-visible:ring-white"
+                className="h-10 border-neutral-200 bg-white pl-9 text-neutral-900 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-600"
                 aria-label="Search messages"
               />
             </div>
@@ -386,16 +472,46 @@ export function StudentMessagesPage() {
 
           <div className="border-b border-neutral-200 px-3 py-2">
             <Tabs value={tab} onValueChange={(value) => setTab(value as MessageTab)} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-neutral-100">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="broadcasts">Broadcasts</TabsTrigger>
-                <TabsTrigger value="direct">Direct</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-4 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1">
+                <TabsTrigger
+                  value="all"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                >
+                  All
+                </TabsTrigger>
+                <TabsTrigger
+                  value="broadcasts"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                >
+                  Broadcasts
+                </TabsTrigger>
+                <TabsTrigger
+                  value="direct"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                >
+                  Direct
+                </TabsTrigger>
+                <TabsTrigger
+                  value="help"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                >
+                  Help
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 ? (
+            {tab === "help" ? (
+              <div className="p-4">
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+                  <p className="text-sm font-semibold tracking-tight text-neutral-900">Support Center</p>
+                  <p className="mt-1 text-xs text-neutral-600">
+                    Open the Help tab on the right to contact the placement team.
+                  </p>
+                </div>
+              </div>
+            ) : filteredConversations.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center px-6 text-center text-neutral-500">
                 <Inbox className="mb-3 h-8 w-8 text-neutral-300" />
                 <p className="text-sm font-medium">No messages yet</p>
@@ -411,10 +527,17 @@ export function StudentMessagesPage() {
                       type="button"
                       onClick={() => setSelectedConversationKey(conversation.key)}
                       className={cn(
-                        "w-full px-4 py-3 text-left transition",
-                        isSelected ? "bg-blue-50" : "hover:bg-neutral-50"
+                        "relative w-full px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-inset",
+                        isSelected ? "bg-neutral-50" : "hover:bg-neutral-50"
                       )}
                     >
+                      <span
+                        className={cn(
+                          "absolute inset-y-2 left-0 w-1 rounded-r-full bg-blue-600 transition-opacity",
+                          isSelected ? "opacity-100" : "opacity-0"
+                        )}
+                        aria-hidden="true"
+                      />
                       <div className="flex items-start gap-3">
                         <Avatar className="mt-0.5 h-11 w-11 border border-neutral-200">
                           <AvatarImage src={conversation.avatarUrl ?? undefined} />
@@ -427,7 +550,7 @@ export function StudentMessagesPage() {
                           <div className="flex items-center justify-between gap-2">
                             <p className="truncate text-sm font-semibold text-neutral-900">{conversation.title}</p>
                             <span className="shrink-0 text-xs text-neutral-500">
-                              {format(new Date(conversation.lastMessage.created_at), "h:mm a")}
+                              {safeFormatDate(conversation.lastMessage.created_at, "h:mm a")}
                             </span>
                           </div>
 
@@ -436,7 +559,7 @@ export function StudentMessagesPage() {
                           <div className="mt-1 flex items-center justify-between gap-2">
                             <p className="line-clamp-1 text-xs text-neutral-600">{getPreview(conversation.lastMessage)}</p>
                             {conversation.unreadCount > 0 ? (
-                              <Badge className="bg-blue-600 text-white hover:bg-blue-600">
+                              <Badge className="bg-neutral-900 text-white hover:bg-neutral-900">
                                 {conversation.unreadCount}
                               </Badge>
                             ) : null}
@@ -453,18 +576,68 @@ export function StudentMessagesPage() {
 
         <main
           className={cn(
-            "min-h-0 flex-col bg-gradient-to-b from-white via-blue-50/30 to-white",
-            selectedConversation ? "flex" : "hidden lg:flex"
+            "min-h-0 flex-col bg-white",
+            selectedConversation || tab === "help" ? "flex" : "hidden lg:flex"
           )}
         >
-          {selectedConversation ? (
+          {tab === "help" ? (
+            <div className="flex h-full items-center justify-center p-6">
+              <div className="w-full max-w-2xl rounded-2xl border border-neutral-200 bg-white p-6 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.35)]">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-2.5 text-blue-700">
+                    <LifeBuoy className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold tracking-tight text-neutral-900">Help & Support</h2>
+                    <p className="text-sm text-neutral-600">
+                      Reach the placement team for technical or process-related issues.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                    <p className="text-sm font-semibold text-neutral-900">Contact Support Team</p>
+                    <p className="mt-1 text-xs text-neutral-600">
+                      Send a support request directly to admins from PlacePro.
+                    </p>
+                    <Button
+                      type="button"
+                      className="mt-3 h-10 w-full rounded-lg bg-blue-600 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-sm"
+                      onClick={() => setSupportDialogOpen(true)}
+                    >
+                      <LifeBuoy className="mr-2 h-4 w-4" />
+                      Contact Support Team
+                    </Button>
+                  </div>
+
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                    <p className="text-sm font-semibold text-neutral-900">Email Placement Office</p>
+                    <p className="mt-1 text-xs text-neutral-600">
+                      Open Gmail compose with the placement office pre-filled.
+                    </p>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="mt-3 h-10 w-full rounded-lg border-neutral-300 text-neutral-800 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                    >
+                      <a href={SUPPORT_GMAIL_COMPOSE_URL} target="_blank" rel="noopener noreferrer">
+                        <Mail className="mr-2 h-4 w-4 text-blue-600" />
+                        Open in Gmail
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : selectedConversation ? (
             <>
-              <header className="flex items-center justify-between border-b border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur">
+              <header className="flex items-center justify-between border-b border-neutral-200 bg-white px-4 py-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-lg lg:hidden"
+                    className="h-8 w-8 rounded-lg text-neutral-600 hover:bg-neutral-100 lg:hidden"
                     onClick={() => setSelectedConversationKey(null)}
                     aria-label="Back to conversations"
                   >
@@ -484,7 +657,7 @@ export function StudentMessagesPage() {
                   </div>
                 </div>
 
-                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                <Badge variant="secondary" className="border border-neutral-200 bg-neutral-50 text-neutral-700">
                   Read only
                 </Badge>
               </header>
@@ -495,15 +668,15 @@ export function StudentMessagesPage() {
                     const previousMessage = threadMessages[index - 1];
                     const showDateLabel =
                       !previousMessage ||
-                      format(new Date(previousMessage.created_at), "yyyy-MM-dd") !==
-                      format(new Date(message.created_at), "yyyy-MM-dd");
+                      safeFormatDate(previousMessage.created_at, "yyyy-MM-dd") !==
+                      safeFormatDate(message.created_at, "yyyy-MM-dd");
 
                     return (
                       <div key={message.id} className="space-y-2">
                         {showDateLabel ? (
                           <div className="flex justify-center">
-                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                              {format(new Date(message.created_at), "PPP")}
+                            <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-medium text-neutral-600">
+                              {safeFormatDate(message.created_at, "PPP")}
                             </span>
                           </div>
                         ) : null}
@@ -513,28 +686,28 @@ export function StudentMessagesPage() {
                             className={cn(
                               "max-w-[88%] rounded-2xl border px-4 py-3 shadow-sm",
                               message.is_broadcast
-                                ? "rounded-tl-md border-blue-700 bg-blue-600 text-white"
+                                ? "rounded-tl-md border border-blue-200 border-l-4 border-l-blue-600 bg-white text-neutral-900"
                                 : "rounded-tl-md border-neutral-200 bg-white text-neutral-900"
                             )}
                           >
-                            {message.subject ? (
+                            {(message.subject ?? "").replace(/^\[HELP\]\s*/i, "").trim() ? (
                               <p
                                 className={cn(
                                   "mb-2 text-xs font-semibold uppercase tracking-wide",
-                                  message.is_broadcast ? "text-blue-100" : "text-blue-700"
+                                  message.is_broadcast ? "text-blue-700" : "text-blue-700"
                                 )}
                               >
-                                {message.subject}
+                                {(message.subject ?? "").replace(/^\[HELP\]\s*/i, "").trim()}
                               </p>
                             ) : null}
 
                             <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.message}</p>
 
                             <div className="mt-2 flex items-center justify-end gap-1.5 text-[11px]">
-                              <span className={message.is_broadcast ? "text-blue-100" : "text-neutral-500"}>
-                                {format(new Date(message.created_at), "h:mm a")}
+                              <span className="text-neutral-500">
+                                {safeFormatDate(message.created_at, "h:mm a")}
                               </span>
-                              <CheckCheck className={message.is_broadcast ? "h-3.5 w-3.5 text-blue-100" : "h-3.5 w-3.5 text-blue-600"} />
+                              <CheckCheck className="h-3.5 w-3.5 text-blue-600" />
                             </div>
                           </article>
                         </div>
@@ -545,15 +718,15 @@ export function StudentMessagesPage() {
               </div>
 
               <footer className="border-t border-neutral-200 bg-white px-4 py-3">
-                <div className="flex items-center gap-2 text-xs text-neutral-500">
+                <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
                   <ShieldCheck className="h-4 w-4 text-blue-600" />
-                  Replies are disabled. This channel is for official placement updates only.
+                  Replies are disabled. Use the Help tab for support requests.
                 </div>
               </footer>
             </>
           ) : (
             <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-              <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-100 p-4 text-blue-700">
+              <div className="mb-4 rounded-2xl border border-neutral-200 bg-white p-4 text-blue-700">
                 <MessageCircle className="h-8 w-8" />
               </div>
               <h2 className="text-xl font-semibold text-neutral-900">Select a conversation</h2>
@@ -564,6 +737,54 @@ export function StudentMessagesPage() {
           )}
         </main>
       </div>
+
+      <Dialog open={supportDialogOpen} onOpenChange={setSupportDialogOpen}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto border-neutral-200 bg-white sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-neutral-900">Contact Placement Support</DialogTitle>
+            <DialogDescription>
+              Share your issue with the placement team. Your request will appear in the admin help inbox.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSupportSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="support-subject">Subject</Label>
+              <Input
+                id="support-subject"
+                value={supportSubject}
+                onChange={(event) => setSupportSubject(event.target.value)}
+                placeholder="Example: Unable to upload semester marksheet"
+                className="h-10 border-neutral-300 focus-visible:ring-2 focus-visible:ring-blue-600"
+                maxLength={120}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="support-message">Issue details</Label>
+              <Textarea
+                id="support-message"
+                value={supportMessage}
+                onChange={(event) => setSupportMessage(event.target.value)}
+                placeholder="Please describe what happened and where you are stuck..."
+                className="min-h-32 border-neutral-300 focus-visible:ring-2 focus-visible:ring-blue-600"
+                maxLength={3000}
+                required
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-neutral-200 pt-4">
+              <Button type="button" variant="ghost" onClick={() => setSupportDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-blue-600 text-white hover:bg-blue-700" disabled={supportSending}>
+                {supportSending ? "Sending..." : "Send Support Request"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

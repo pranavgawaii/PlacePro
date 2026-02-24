@@ -29,11 +29,18 @@ type PuppeteerModule = {
   }>;
 };
 
-function loadPdfDependencies(): { puppeteer: PuppeteerModule; chromium: ChromiumModule } | null {
+async function loadPdfDependencies(): Promise<{ puppeteer: PuppeteerModule; chromium: ChromiumModule } | null> {
   try {
-    const runtimeRequire = eval("require") as NodeRequire;
-    const puppeteer = runtimeRequire("puppeteer-core") as PuppeteerModule;
-    const chromium = runtimeRequire("@sparticuz/chromium") as ChromiumModule;
+    const [puppeteerModule, chromiumModule] = await Promise.all([
+      import("puppeteer-core"),
+      import("@sparticuz/chromium")
+    ]);
+
+    const puppeteer = (("default" in puppeteerModule ? puppeteerModule.default : puppeteerModule) ??
+      puppeteerModule) as unknown as PuppeteerModule;
+    const chromium = (("default" in chromiumModule ? chromiumModule.default : chromiumModule) ??
+      chromiumModule) as unknown as ChromiumModule;
+
     return { puppeteer, chromium };
   } catch {
     return null;
@@ -91,7 +98,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     (resumeRow.template_type as ResumeTemplateType) ?? "modern"
   );
 
-  const deps = loadPdfDependencies();
+  const deps = await loadPdfDependencies();
   if (!deps) {
     return NextResponse.json(
       {
