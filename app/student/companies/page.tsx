@@ -175,7 +175,7 @@ export default function StudentCompaniesPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between md:justify-end gap-6 pl-[4.5rem] md:pl-0">
+                                    <div className="flex items-center justify-between md:justify-end gap-6 pl-0 md:pl-[4.5rem]">
                                         <div className="flex flex-col items-start md:items-end gap-1.5">
                                             <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-600">
                                                 <span className="bg-neutral-50 px-2.5 py-1 rounded-md text-[11px] border border-neutral-100 font-semibold text-neutral-700">

@@ -212,7 +212,10 @@ export function StudentMessagesPage() {
             setAdminProfiles(profiles);
           }
         })
-        .catch(() => undefined);
+        .catch((err) => {
+          if (err.name === 'AbortError' || err.message?.includes('aborted')) return;
+          console.error("Failed to fetch admin profiles:", err);
+        });
     };
 
     void init();
@@ -428,7 +431,7 @@ export function StudentMessagesPage() {
 
   if (loading) {
     return (
-      <section className="mx-auto h-[calc(100vh-92px)] w-full max-w-7xl p-4 font-sans">
+      <section className="mx-auto min-h-[calc(100svh-92px)] w-full max-w-7xl py-4 px-0 sm:px-4 font-sans lg:h-[calc(100vh-92px)]">
         <div className="grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm lg:grid-cols-[360px_1fr]">
           <div className="space-y-4 border-r border-neutral-200 p-4">
             <Skeleton className="h-10 w-40" />
@@ -444,7 +447,7 @@ export function StudentMessagesPage() {
   }
 
   return (
-    <section className="mx-auto h-[calc(100vh-92px)] w-full max-w-7xl p-4 font-sans">
+    <section className="mx-auto min-h-[calc(100svh-92px)] w-full max-w-7xl py-4 px-0 sm:px-4 font-sans lg:h-[calc(100vh-92px)]">
       <div className="grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_16px_42px_-34px_rgba(15,23,42,0.45)] lg:grid-cols-[360px_1fr]">
         <aside
           className={cn(
@@ -472,28 +475,28 @@ export function StudentMessagesPage() {
 
           <div className="border-b border-neutral-200 px-3 py-2">
             <Tabs value={tab} onValueChange={(value) => setTab(value as MessageTab)} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1">
                 <TabsTrigger
                   value="all"
-                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:text-neutral-900"
                 >
                   All
                 </TabsTrigger>
                 <TabsTrigger
                   value="broadcasts"
-                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:text-neutral-900"
                 >
                   Broadcasts
                 </TabsTrigger>
                 <TabsTrigger
                   value="direct"
-                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:text-neutral-900"
                 >
                   Direct
                 </TabsTrigger>
                 <TabsTrigger
                   value="help"
-                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:text-neutral-900"
                 >
                   Help
                 </TabsTrigger>

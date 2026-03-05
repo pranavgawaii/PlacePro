@@ -490,7 +490,7 @@ export function AdminMessagesPage() {
 
   if (loading) {
     return (
-      <section className="mx-auto h-[calc(100vh-92px)] w-full max-w-7xl p-4 font-sans">
+      <section className="mx-auto min-h-[calc(100svh-92px)] w-full max-w-7xl py-4 px-0 sm:px-4 font-sans lg:h-[calc(100vh-92px)]">
         <div className="grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm lg:grid-cols-[360px_1fr]">
           <div className="space-y-4 border-r border-neutral-200 p-4">
             <Skeleton className="h-10 w-40" />
@@ -506,7 +506,7 @@ export function AdminMessagesPage() {
   }
 
   return (
-    <section className="mx-auto h-[calc(100vh-92px)] w-full max-w-7xl p-4 font-sans">
+    <section className="mx-auto min-h-[calc(100svh-92px)] w-full max-w-7xl py-4 px-0 sm:px-4 font-sans lg:h-[calc(100vh-92px)]">
       <div className="grid h-full grid-cols-1 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_16px_42px_-34px_rgba(15,23,42,0.45)] transition-shadow duration-300 lg:grid-cols-[360px_1fr]">
         <aside
           className={cn(
@@ -549,28 +549,28 @@ export function AdminMessagesPage() {
               onValueChange={(value) => setTab(value as MessageTab)}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-4 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1">
                 <TabsTrigger
                   value="all"
-                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:text-neutral-900"
                 >
                   All
                 </TabsTrigger>
                 <TabsTrigger
                   value="broadcasts"
-                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:text-neutral-900"
                 >
                   Broadcasts
                 </TabsTrigger>
                 <TabsTrigger
                   value="direct"
-                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:text-neutral-900"
                 >
                   Direct
                 </TabsTrigger>
                 <TabsTrigger
                   value="help"
-                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm"
+                  className="h-10 rounded-lg text-[13px] font-medium tracking-tight text-neutral-500 transition-all duration-200 data-[state=active]:text-neutral-900"
                 >
                   Help
                 </TabsTrigger>
@@ -718,7 +718,7 @@ export function AdminMessagesPage() {
                     const showDateLabel =
                       !previousMessage ||
                       safeFormatDate(previousMessage.created_at, "yyyy-MM-dd") !==
-                        safeFormatDate(message.created_at, "yyyy-MM-dd");
+                      safeFormatDate(message.created_at, "yyyy-MM-dd");
 
                     const messageRecipients = recipientMap.get(message.id) ?? [];
                     const seenCount = messageRecipients.filter((recipient) => Boolean(recipient.read_at)).length;

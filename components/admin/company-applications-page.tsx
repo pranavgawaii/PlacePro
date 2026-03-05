@@ -195,7 +195,7 @@ export function CompanyApplicationsPage({ companyId }: CompanyApplicationsPagePr
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="h-16 w-16 rounded-2xl border bg-white flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
           {company.name.toLowerCase().includes("tcs") ? (
             <img src="/brand/tcs.jpg" alt="TCS" className="h-full w-full object-contain p-1.5" />
@@ -274,7 +274,8 @@ export function CompanyApplicationsPage({ companyId }: CompanyApplicationsPagePr
         </CardHeader>
 
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[900px]">
             <TableHeader>
               <TableRow>
                 <TableHead></TableHead>
@@ -362,7 +363,8 @@ export function CompanyApplicationsPage({ companyId }: CompanyApplicationsPagePr
                 </TableRow>
               )}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

@@ -1,17 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { Menu } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export function LandingNavbar() {
+    const navItems = ["Product", "Features", "Pricing", "Resources"];
+
     return (
-        <header className="w-full h-[80px] px-8 flex items-center justify-between relative z-20 bg-white border-y-2 border-black">
+        <header className="w-full h-16 sm:h-[80px] px-0 sm:px-8 flex items-center justify-between relative z-20 bg-white border-y-2 border-black">
             <Link href="/" className="flex items-center gap-2 group hover-logo-3d">
                 <img src="/brand/logo.png" alt="PlacePro Logo" className="w-8 h-8 object-contain" />
-                <span className="text-xl font-semibold tracking-tight text-neutral-900 transition-colors group-hover:text-blue-600">PlacePro</span>
+                <span className="text-lg sm:text-xl font-semibold tracking-tight text-neutral-900 transition-colors group-hover:text-blue-600">PlacePro</span>
             </Link>
 
             <nav className="hidden md:flex gap-8 text-[15px] font-medium text-neutral-600">
-                {["Product", "Features", "Pricing", "Resources"].map((item) => (
+                {navItems.map((item) => (
                     <Link
                         key={item}
                         className="relative group hover:text-black transition-colors"
@@ -23,7 +27,7 @@ export function LandingNavbar() {
                 ))}
             </nav>
 
-            <div className="relative group">
+            <div className="relative group hidden md:block">
                 <Link href="/login">
                     <button className="bg-black text-white px-6 py-2.5 text-sm font-medium relative hover:bg-blue-600 transition-colors shadow-sm active:translate-y-0.5">
                         Book a Demo
@@ -33,6 +37,39 @@ export function LandingNavbar() {
                         <div className="absolute bottom-1 right-1 w-1 h-1 bg-white rounded-full"></div>
                     </button>
                 </Link>
+            </div>
+
+            <div className="md:hidden">
+                <Sheet>
+                    <SheetTrigger
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-700 transition-colors hover:bg-neutral-50"
+                        aria-label="Open navigation"
+                    >
+                        <Menu className="h-4 w-4" />
+                    </SheetTrigger>
+                    <SheetContent side="right" className="bg-white">
+                        <SheetTitle className="text-base font-semibold text-neutral-900">Explore</SheetTitle>
+                        <div className="mt-6 space-y-2">
+                            {navItems.map((item) => (
+                                <Link
+                                    key={item}
+                                    className="block rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-black"
+                                    href={`#${item.toLowerCase()}`}
+                                >
+                                    {item}
+                                </Link>
+                            ))}
+                        </div>
+                        <div className="mt-6">
+                            <Link
+                                href="/login"
+                                className="inline-flex w-full items-center justify-center rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+                            >
+                                Book a Demo
+                            </Link>
+                        </div>
+                    </SheetContent>
+                </Sheet>
             </div>
         </header>
     );

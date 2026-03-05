@@ -5,14 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
-  const supabase = createClient();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,43 +21,47 @@ export function LoginForm() {
     event.preventDefault();
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          password
+        })
+      });
 
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
+      // Handle cases where the component might unmount or signal aborts in Next.js 15/React 19
+      const text = await response.text();
+      let payload: { success?: boolean; error?: string; redirectTo?: string } | null = null;
+
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = null;
+      }
+
+      if (!response.ok || !payload?.success) {
+        toast.error(payload?.error ?? "Unable to sign in. Please try again.");
+        return;
+      }
+
+      toast.success("Login successful");
+      // Use router.push/replace and wait for it
+      router.replace(payload.redirectTo ?? "/student/dashboard");
+      router.refresh();
+    } catch (err: any) {
+      // Ignore AbortError as it's often a framework artifact in Next.js 15 during navigation
+      if (err.name === 'AbortError' || err.message?.includes('aborted')) {
+        console.debug("Fetch aborted (expected during navigation)");
+        return;
+      }
+
+      console.error("Login unexpected error:", err);
+      toast.error("Network error: unable to reach login service.");
+    } finally {
+      if (loading) setLoading(false);
     }
-
-    if (!data.user) {
-      toast.error("Unable to load user session");
-      setLoading(false);
-      return;
-    }
-
-    const { data: roleRow, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user.id)
-      .maybeSingle();
-
-    if (roleError) {
-      toast.error(roleError.message);
-      setLoading(false);
-      return;
-    }
-
-    const role = roleRow?.role;
-    toast.success("Login successful");
-
-    if (role === "admin") {
-      router.replace("/admin/students");
-    } else {
-      router.replace("/student/dashboard");
-    }
-
-    router.refresh();
-    setLoading(false);
   };
 
   return (

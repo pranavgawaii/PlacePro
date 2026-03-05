@@ -7,7 +7,7 @@ export function LandingCTA() {
     return (
         <motion.section
             id="resources"
-            className="py-32 px-8 bg-white border-b-2 border-black relative overflow-hidden"
+            className="py-32 px-0 sm:px-8 bg-white border-b-2 border-black relative overflow-hidden"
         >
             <div
                 className="absolute inset-0 opacity-[0.03] pointer-events-none"

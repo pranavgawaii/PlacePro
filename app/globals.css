@@ -107,6 +107,17 @@
     flex-direction: column;
 }
 
+@media (max-width: 640px) {
+    .bespoke-frame {
+        border-left: 0;
+        border-right: 0;
+        max-width: 100%;
+        margin: 0;
+        height: auto;
+        overflow: visible;
+    }
+}
+
 .nav-line {
     border-bottom: 2px solid #000;
 }

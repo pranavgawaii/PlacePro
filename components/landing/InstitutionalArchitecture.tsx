@@ -25,15 +25,43 @@ export function InstitutionalArchitecture() {
     }, []);
 
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, delay: 0.5 }}
-            className="relative w-full max-w-[1200px] h-[440px] hidden md:block mx-auto -mt-4 lg:-mt-8 origin-top scale-[0.85] lg:scale-[0.9]"
-        >
-            {/* Connection Lines */}
-            <div className="relative w-[1000px] h-full mx-auto">
+        <>
+            <div className="block md:hidden w-full max-w-[720px] mx-auto mt-6">
+                <div className="rounded-2xl border-2 border-black bg-white p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,0.12)]">
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">Placement Engine</div>
+                    <h3 className="mt-2 text-lg font-bold text-neutral-900">How PlacePro orchestrates outcomes</h3>
+                    <p className="mt-2 text-sm text-neutral-600">
+                        Student profiles, resume intelligence, and eligibility scoring sync into one placement pipeline.
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-3">
+                        {[
+                            "Student Records",
+                            "Resume Data",
+                            "Academic History",
+                            "Internships",
+                            "Skill Matrix"
+                        ].map((item) => (
+                            <div key={item} className="flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700">
+                                {item}
+                                <span className="text-xs text-blue-600">Sync</span>
+                            </div>
+                        ))}
+                        <div className="rounded-lg border border-black bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900">
+                            Output: {placedCount}% Placed • Avg {avgCtc} LPA
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, delay: 0.5 }}
+                className="relative w-full max-w-[1200px] h-[440px] hidden md:block mx-auto -mt-4 lg:-mt-8 origin-top scale-[0.85] lg:scale-[0.9]"
+            >
+                {/* Connection Lines */}
+                <div className="relative w-[1000px] h-full mx-auto">
                 <svg
                     className="absolute inset-0 w-full h-full pointer-events-none z-0"
                     xmlns="http://www.w3.org/2000/svg"
@@ -214,7 +242,8 @@ export function InstitutionalArchitecture() {
                         </div>
                     </motion.div>
                 </motion.div>
-            </div>
-        </motion.div>
+                </div>
+            </motion.div>
+        </>
     );
 }

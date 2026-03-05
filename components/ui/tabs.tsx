@@ -8,7 +8,11 @@ type TabsContextValue = {
   setValue: (next: string) => void;
 };
 
-const TabsContext = React.createContext<TabsContextValue | null>(null);
+const TabsContext = React.createContext<{
+  value: string;
+  setValue: (next: string) => void;
+  layoutId: string;
+} | null>(null);
 
 type TabsProps = React.HTMLAttributes<HTMLDivElement> & {
   value?: string;
@@ -19,6 +23,7 @@ type TabsProps = React.HTMLAttributes<HTMLDivElement> & {
 function Tabs({ value, defaultValue, onValueChange, className, children, ...props }: TabsProps) {
   const [internalValue, setInternalValue] = React.useState(defaultValue ?? "");
   const resolvedValue = value ?? internalValue;
+  const layoutId = React.useId();
 
   const setValue = React.useCallback(
     (next: string) => {
@@ -31,7 +36,7 @@ function Tabs({ value, defaultValue, onValueChange, className, children, ...prop
   );
 
   return (
-    <TabsContext.Provider value={{ value: resolvedValue, setValue }}>
+    <TabsContext.Provider value={{ value: resolvedValue, setValue, layoutId }}>
       <div className={cn("space-y-2", className)} {...props}>
         {children}
       </div>
@@ -40,23 +45,36 @@ function Tabs({ value, defaultValue, onValueChange, className, children, ...prop
 }
 
 function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("inline-flex items-center gap-1 rounded-md bg-muted p-1", className)} {...props} />;
+  return (
+    <div
+      className={cn("inline-flex items-center gap-1 rounded-md bg-muted p-1", className)}
+      {...props}
+    />
+  );
 }
 
 type TabsTriggerProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   value: string;
+  activeIndicatorClassName?: string;
 };
 
-function TabsTrigger({ className, value, onClick, ...props }: TabsTriggerProps) {
+import { motion } from "framer-motion";
+
+function TabsTrigger({ className, value, onClick, children, activeIndicatorClassName, ...props }: TabsTriggerProps) {
   const context = React.useContext(TabsContext);
   const active = context?.value === value;
 
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
+      data-state={active ? "active" : "inactive"}
       className={cn(
-        "rounded px-3 py-1.5 text-sm font-medium transition-colors",
-        active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+        "relative rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 outline-none",
+        active
+          ? "text-foreground"
+          : "text-muted-foreground hover:bg-black/5 hover:text-foreground",
         className
       )}
       onClick={(event) => {
@@ -64,7 +82,16 @@ function TabsTrigger({ className, value, onClick, ...props }: TabsTriggerProps) 
         context?.setValue(value);
       }}
       {...props}
-    />
+    >
+      {active && (
+        <motion.div
+          layoutId={`active-tab-${context?.layoutId}`}
+          className={cn("absolute inset-0 z-0 rounded-md bg-background shadow-sm", activeIndicatorClassName)}
+          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+        />
+      )}
+      <span className="relative z-10">{children}</span>
+    </button>
   );
 }
 

@@ -487,6 +487,247 @@ export interface Database {
           }
         ];
       };
+      labs: {
+        Row: {
+          id: string;
+          owner_id: string;
+          lab_name: string;
+          total_seats: number;
+          rows: number | null;
+          columns: number | null;
+          seat_pattern: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          lab_name: string;
+          total_seats: number;
+          rows?: number | null;
+          columns?: number | null;
+          seat_pattern?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          lab_name?: string;
+          total_seats?: number;
+          rows?: number | null;
+          columns?: number | null;
+          seat_pattern?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "labs_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      students_temp: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          roll_number: string;
+          department: string | null;
+          upload_session_id: string;
+          parse_source: "xlsx" | "csv" | "pdf" | null;
+          raw_row: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          name: string;
+          roll_number: string;
+          department?: string | null;
+          upload_session_id: string;
+          parse_source?: "xlsx" | "csv" | "pdf" | null;
+          raw_row?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          roll_number?: string;
+          department?: string | null;
+          parse_source?: "xlsx" | "csv" | "pdf" | null;
+          raw_row?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "students_temp_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      allocation_sessions: {
+        Row: {
+          id: string;
+          owner_id: string;
+          upload_session_id: string;
+          mode: "alphabetical" | "random";
+          status: string;
+          seed: number | null;
+          metadata: Json | null;
+          is_published: boolean;
+          published_at: string | null;
+          published_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          upload_session_id: string;
+          mode?: "alphabetical" | "random";
+          status?: string;
+          seed?: number | null;
+          metadata?: Json | null;
+          is_published?: boolean;
+          published_at?: string | null;
+          published_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          mode?: "alphabetical" | "random";
+          status?: string;
+          seed?: number | null;
+          metadata?: Json | null;
+          is_published?: boolean;
+          published_at?: string | null;
+          published_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "allocation_sessions_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "allocation_sessions_published_by_fkey";
+            columns: ["published_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      allocations: {
+        Row: {
+          id: string;
+          owner_id: string;
+          student_id: string;
+          matched_student_id: string | null;
+          lab_id: string;
+          lab_name_snapshot: string;
+          seat_number: string;
+          session_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          student_id: string;
+          matched_student_id?: string | null;
+          lab_id: string;
+          lab_name_snapshot: string;
+          seat_number: string;
+          session_id: string;
+          created_at?: string;
+        };
+        Update: {
+          matched_student_id?: string | null;
+          lab_name_snapshot?: string;
+          seat_number?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "allocations_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "allocations_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students_temp";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "allocations_matched_student_id_fkey";
+            columns: ["matched_student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "allocations_lab_id_fkey";
+            columns: ["lab_id"];
+            isOneToOne: false;
+            referencedRelation: "labs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "allocations_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "allocation_sessions";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      document_settings: {
+        Row: {
+          id: string;
+          owner_id: string;
+          institute_name: string;
+          exam_title: string;
+          subject: string;
+          logo_url: string | null;
+          footer_text: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          institute_name: string;
+          exam_title: string;
+          subject: string;
+          logo_url?: string | null;
+          footer_text?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          institute_name?: string;
+          exam_title?: string;
+          subject?: string;
+          logo_url?: string | null;
+          footer_text?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_settings_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       user_roles: {
         Row: {
           user_id: string;
@@ -608,6 +849,22 @@ export interface Database {
           branch: Branch | null;
           overall_cgpa: number | null;
         }[];
+      };
+      publish_seat_allocation_session: {
+        Args: { p_session_id: string };
+        Returns: {
+          id: string;
+          owner_id: string;
+          upload_session_id: string;
+          mode: "alphabetical" | "random";
+          status: string;
+          seed: number | null;
+          metadata: Json | null;
+          is_published: boolean;
+          published_at: string | null;
+          published_by: string | null;
+          created_at: string;
+        };
       };
     };
     Enums: {

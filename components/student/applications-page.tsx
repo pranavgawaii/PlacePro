@@ -237,7 +237,8 @@ export function StudentApplicationsPage() {
       </Tabs>
 
       <div className="rounded-xl border bg-card">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[720px]">
           <TableHeader>
             <TableRow>
               <TableHead>Company</TableHead>
@@ -281,7 +282,8 @@ export function StudentApplicationsPage() {
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
 
       <Dialog open={Boolean(detailRow)} onOpenChange={(open) => (!open ? setDetailRow(null) : undefined)}>

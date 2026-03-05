@@ -382,8 +382,8 @@ export function StudentsTable() {
   return (
     <div className="space-y-4">
       <div className="card-border flex flex-col items-start justify-between gap-4 rounded-lg bg-white p-4 md:flex-row md:items-center">
-        <div className="flex w-full flex-1 items-center gap-2 md:w-auto">
-          <div className="relative flex-1 md:max-w-sm">
+        <div className="flex w-full flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-2 md:w-auto">
+          <div className="relative w-full flex-1 md:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <Input
               placeholder="Search students..."
@@ -394,7 +394,7 @@ export function StudentsTable() {
           </div>
           <div className="mx-2 hidden h-8 w-px bg-neutral-200 md:block" />
           <select
-            className="h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+            className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 md:w-auto"
             value={branchFilter}
             onChange={(event) => setBranchFilter(event.target.value as Branch | "all")}
             aria-label="Filter by branch"
@@ -407,7 +407,7 @@ export function StudentsTable() {
             ))}
           </select>
           <select
-            className="h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+            className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 md:w-auto"
             value={batchFilter}
             onChange={(event) => setBatchFilter(event.target.value)}
             aria-label="Filter by batch"
@@ -439,7 +439,7 @@ export function StudentsTable() {
 
       <div className="card-border overflow-hidden rounded-lg bg-white">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[900px]">
             <TableHeader className="bg-neutral-50">
               <TableRow>
                 <TableHead className="w-[40px] pl-4">

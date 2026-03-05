@@ -141,7 +141,7 @@ export default function StudentSettingsPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto pb-20">
+        <div className="max-w-none sm:max-w-4xl mx-0 sm:mx-auto pb-20 px-0 sm:px-0">
             <div className="mb-10">
                 <h1 className="text-3xl font-bold tracking-tight text-neutral-900">Settings</h1>
                 <p className="text-neutral-500 mt-2 font-medium">Manage your profile, security, and account preferences.</p>
@@ -258,14 +258,14 @@ export default function StudentSettingsPage() {
                                 <CardDescription>Manage how you access your account.</CardDescription>
                             </CardHeader>
                             <CardContent className="pt-6 space-y-6">
-                                <div className="flex items-center justify-between p-4 border rounded-xl border-dashed bg-orange-50/30">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-xl border-dashed bg-orange-50/30">
                                     <div className="space-y-1">
                                         <p className="text-sm font-bold text-neutral-900">Reset Password</p>
                                         <p className="text-xs text-neutral-500 font-medium">Request a secure link to change your password.</p>
                                     </div>
                                     <Button
                                         variant="outline"
-                                        className="border-black font-bold h-9 px-4 active:translate-y-0.5 transition-transform"
+                                        className="border-black font-bold h-9 px-4 active:translate-y-0.5 transition-transform w-full sm:w-auto"
                                         onClick={handleResetPassword}
                                         disabled={isResetting}
                                     >

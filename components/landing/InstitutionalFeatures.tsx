@@ -22,7 +22,7 @@ export function InstitutionalFeatures() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="py-20 px-8 bg-[#FAFAFA] border-b-2 border-black bg-grid-paper"
+            className="py-20 px-0 sm:px-8 bg-[#FAFAFA] border-b-2 border-black bg-grid-paper"
             style={{ backgroundSize: "24px 24px" }}
         >
             <div className="max-w-[1200px] mx-auto">
@@ -129,7 +129,7 @@ export function InstitutionalFeatures() {
 
                             {/* Viewport Content Area */}
                             <div
-                                className="flex flex-col w-full h-[600px] bg-white relative text-left overflow-hidden group"
+                                className="flex flex-col w-full h-[520px] sm:h-[600px] bg-white relative text-left overflow-hidden group"
                                 onMouseEnter={() => setIsWindowFocused(true)}
                                 onMouseLeave={() => setIsWindowFocused(false)}
                             >
@@ -141,7 +141,7 @@ export function InstitutionalFeatures() {
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
                                             transition={{ duration: 0.3, ease: "easeOut" }}
-                                            className="flex flex-col w-full h-full bg-white border-x-2 border-black max-w-[calc(100%-128px)] mx-auto relative overflow-hidden"
+                                            className="flex flex-col w-full h-full bg-white border-x-2 border-black max-w-full sm:max-w-[calc(100%-128px)] mx-auto relative overflow-hidden"
                                         >
                                             <header className="sticky top-0 z-50 bg-white border-b-2 border-black h-14 flex items-center justify-between px-4 shrink-0">
                                                 <div className="flex items-center gap-2">
@@ -204,7 +204,7 @@ export function InstitutionalFeatures() {
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
                                             transition={{ duration: 0.3, ease: "easeOut" }}
-                                            className="flex flex-col w-full h-full bg-white border-x-2 border-black max-w-[calc(100%-128px)] mx-auto relative overflow-hidden"
+                                            className="flex flex-col w-full h-full bg-white border-x-2 border-black max-w-full sm:max-w-[calc(100%-128px)] mx-auto relative overflow-hidden"
                                         >
                                             <header className="sticky top-0 z-50 bg-white border-b-2 border-black h-14 flex items-center justify-between px-4 shrink-0">
                                                 <div className="flex items-center gap-2">

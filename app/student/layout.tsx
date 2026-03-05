@@ -14,6 +14,14 @@ export default async function StudentLayout({
   const { user } = await requireRole("student");
   const supabase = await createClient();
   const { data: student } = await supabase.from("students").select("*").eq("user_id", user?.id!).maybeSingle();
+  const navItems = [
+    { href: "/student/dashboard", label: "Dashboard" },
+    { href: "/student/companies", label: "Job Board" },
+    { href: "/student/applications", label: "My Applications" },
+    { href: "/student/messages", label: "Messages" },
+    { href: "/student/profile", label: "My Profile" },
+    { href: "/student/settings", label: "Settings" }
+  ];
 
   return (
     <BespokeLayout>
@@ -24,6 +32,7 @@ export default async function StudentLayout({
         avatarUrl={student?.avatar_url}
         homeUrl="/student/dashboard"
         messagesUrl="/student/messages"
+        mobileNavItems={navItems}
         secondaryInfo={
           <div className="flex items-center gap-2">
             <Image
@@ -41,8 +50,8 @@ export default async function StudentLayout({
       />
       <div className="flex flex-1 overflow-hidden">
         <StudentSidebar />
-        <main className="flex-1 overflow-y-auto bg-neutral-50/30 p-8">
-          <div className="max-w-7xl mx-auto space-y-8">{children}</div>
+        <main className="flex-1 overflow-y-auto bg-neutral-50/30 py-4 px-0 sm:py-6 sm:px-6 lg:py-8 lg:px-8">
+          <div className="max-w-none sm:max-w-7xl mx-0 sm:mx-auto space-y-8">{children}</div>
         </main>
       </div>
     </BespokeLayout>

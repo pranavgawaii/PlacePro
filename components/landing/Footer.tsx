@@ -5,7 +5,7 @@ import Link from "next/link";
 export function LandingFooter() {
     return (
         <footer className="relative bg-white pt-24 pb-12 overflow-hidden">
-            <div className="max-w-7xl mx-auto px-10 relative z-10">
+            <div className="max-w-7xl mx-auto px-0 sm:px-10 relative z-10">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 mb-20">
                     {/* Brand Column */}
                     <div className="lg:col-span-5 space-y-8">

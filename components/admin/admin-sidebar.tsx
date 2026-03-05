@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, Building, Megaphone, LifeBuoy, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Building, Megaphone, LifeBuoy, Settings, Armchair } from "lucide-react";
 
 export function AdminSidebar() {
     const pathname = usePathname();
@@ -12,6 +12,7 @@ export function AdminSidebar() {
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
         { href: "/admin/students", label: "Students", icon: Users },
         { href: "/admin/companies", label: "Companies", icon: Building },
+        { href: "/admin/seat-allocation", label: "Seat Allocation", icon: Armchair },
         { href: "/admin/messages", label: "Broadcasts", icon: Megaphone },
         { href: "/admin/settings", label: "Settings", icon: Settings },
     ];

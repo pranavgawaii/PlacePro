@@ -10,6 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNowStrict } from "date-fns";
 import { computeEligibility, parseCompanyCriteria } from "@/lib/eligibility";
+import { cn } from "@/lib/utils";
+import { getPublishedSeatForCurrentStudent } from "@/lib/seat-allocation/seatApi";
+import type { PublishedSeatAssignment } from "@/lib/seat-allocation/types";
 
 type StudentRow = Database["public"]["Tables"]["students"]["Row"];
 type CompanyRow = Database["public"]["Tables"]["companies"]["Row"];
@@ -21,6 +24,7 @@ export function StudentDashboardPageSimple() {
     const [student, setStudent] = useState<StudentRow | null>(null);
     const [applications, setApplications] = useState<ApplicationRow[]>([]);
     const [companies, setCompanies] = useState<CompanyRow[]>([]);
+    const [publishedSeat, setPublishedSeat] = useState<PublishedSeatAssignment | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -43,6 +47,15 @@ export function StudentDashboardPageSimple() {
                         .eq("student_id", studentData.id);
 
                     if (appsData) setApplications(appsData);
+                    try {
+                        const seatAssignment = await getPublishedSeatForCurrentStudent();
+                        setPublishedSeat(seatAssignment);
+                    } catch (seatError) {
+                        console.error("Error fetching seat allocation:", seatError);
+                        setPublishedSeat(null);
+                    }
+                } else {
+                    setPublishedSeat(null);
                 }
 
                 const { data: companiesData } = await supabase
@@ -78,19 +91,24 @@ export function StudentDashboardPageSimple() {
             {/* Hero Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Welcome Card */}
-                <div className="lg:col-span-2 rounded-xl card-border overflow-hidden bg-blueprint text-white-force relative">
+                <div
+                    className={cn(
+                        "rounded-xl card-border overflow-hidden bg-blueprint text-white-force relative",
+                        publishedSeat ? "lg:col-span-2" : "lg:col-span-3"
+                    )}
+                >
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
-                    <div className="relative p-8 h-full flex flex-col justify-between">
+                    <div className="relative p-6 sm:p-8 h-full flex flex-col justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">
+                            <h1 className="text-2xl sm:text-3xl font-bold mb-2">
                                 {loading ? "Welcome back" : `Welcome back, ${student?.name?.split(" ")[0] || "Student"}`}
                             </h1>
                             <p className="text-blue-100 text-sm max-w-md">
                                 You have 2 upcoming interviews this week. Keep up the momentum, your profile is looking strong!
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 mt-6">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mt-6">
                             <button className="bg-white text-blue-700 px-4 py-2 rounded text-sm font-semibold hover:bg-blue-50 transition-colors shadow-sm">
                                 View Schedule
                             </button>
@@ -101,36 +119,27 @@ export function StudentDashboardPageSimple() {
                     </div>
                 </div>
 
-                {/* Placement Readiness (Static) */}
-                <div className="bg-white rounded-xl card-border p-6 flex flex-col items-center justify-center relative overflow-hidden">
-                    <h3 className="text-neutral-500 text-xs font-bold uppercase tracking-wider absolute top-6 left-6">
-                        Placement Readiness
-                    </h3>
-                    <div className="relative w-32 h-32 mt-4">
-                        <svg className="transform -rotate-90 w-32 h-32">
-                            <circle cx="64" cy="64" r="56" stroke="#f0f0f0" strokeWidth="8" fill="transparent"></circle>
-                            <circle
-                                className="transition-all duration-1000 ease-out text-blue-600"
-                                cx="64"
-                                cy="64"
-                                r="56"
-                                stroke="currentColor"
-                                strokeWidth="8"
-                                fill="transparent"
-                                strokeDasharray="351.8"
-                                strokeDashoffset="63"
-                                strokeLinecap="round"
-                            ></circle>
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-3xl font-bold tracking-tight">82%</span>
-                            <span className="text-[10px] text-neutral-400 font-medium uppercase">Strong</span>
+                {publishedSeat ? (
+                    <div className="bg-white rounded-xl card-border p-6 flex flex-col justify-between relative overflow-hidden">
+                        <div>
+                            <h3 className="text-neutral-500 text-xs font-bold uppercase tracking-wider">Allocated Seat</h3>
+                            <p className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">
+                                {publishedSeat.seat_number}
+                            </p>
+                            <p className="text-sm text-neutral-600 mt-1">{publishedSeat.lab_name}</p>
+                        </div>
+                        <div className="mt-5 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
+                            <p className="text-xs font-semibold text-blue-700">
+                                Published {publishedSeat.published_at
+                                    ? new Date(publishedSeat.published_at).toLocaleString()
+                                    : new Date(publishedSeat.created_at).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-blue-700/90 mt-1">
+                                Session {publishedSeat.session_id.slice(0, 8)}
+                            </p>
                         </div>
                     </div>
-                    <p className="text-xs text-neutral-500 mt-4 text-center px-4">
-                        Complete 2 mock tests to reach 90% readiness score.
-                    </p>
-                </div>
+                ) : null}
             </div>
 
             {/* Stats Grid */}
@@ -192,7 +201,7 @@ export function StudentDashboardPageSimple() {
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Recommended Jobs */}
                 <div className="flex-1 space-y-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <h2 className="text-lg font-bold">Recommended for You</h2>
                         <div className="flex gap-2">
                             <Link href="/student/companies">
@@ -274,7 +283,7 @@ export function StudentDashboardPageSimple() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between md:justify-end gap-6 pl-[4.5rem] md:pl-0">
+                                    <div className="flex items-center justify-between md:justify-end gap-6 pl-0 md:pl-[4.5rem]">
                                         <div className="flex flex-col items-start md:items-end gap-1.5">
                                             <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-600">
                                                 <span className="bg-neutral-50 px-2.5 py-1 rounded-md text-[11px] border border-neutral-100 font-semibold text-neutral-700">

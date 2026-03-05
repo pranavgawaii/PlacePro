@@ -174,7 +174,7 @@ export default function AdminSettingsPage() {
     const isSuperAdmin = role === "super_admin";
 
     return (
-        <div className="max-w-6xl mx-auto pb-20">
+        <div className="max-w-none sm:max-w-6xl mx-0 sm:mx-auto pb-20 px-0 sm:px-0">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-neutral-900">System Control</h1>
@@ -188,10 +188,11 @@ export default function AdminSettingsPage() {
             </div>
 
             <Tabs defaultValue="profile" className="w-full space-y-8">
-                <TabsList className="bg-neutral-100/50 p-1 border-2 border-black rounded-lg w-fit">
+                <TabsList className="bg-neutral-100/50 p-1 border-2 border-black rounded-lg w-full flex flex-wrap gap-2 sm:w-fit">
                     <TabsTrigger
                         value="profile"
-                        className="data-[state=active]:bg-black data-[state=active]:text-white font-bold px-6 py-2 rounded-md transition-all"
+                        activeIndicatorClassName="bg-black shadow-none"
+                        className="data-[state=active]:text-white font-bold px-4 py-2 rounded-md transition-all w-full sm:w-auto"
                     >
                         <UserIcon className="w-4 h-4 mr-2" />
                         Admin Profile
@@ -199,7 +200,8 @@ export default function AdminSettingsPage() {
                     {isSuperAdmin && (
                         <TabsTrigger
                             value="admins"
-                            className="data-[state=active]:bg-black data-[state=active]:text-white font-bold px-6 py-2 rounded-md transition-all"
+                            activeIndicatorClassName="bg-black shadow-none"
+                            className="data-[state=active]:text-white font-bold px-4 py-2 rounded-md transition-all w-full sm:w-auto"
                         >
                             <ShieldCheck className="w-4 h-4 mr-2" />
                             User Management
@@ -207,7 +209,8 @@ export default function AdminSettingsPage() {
                     )}
                     <TabsTrigger
                         value="security"
-                        className="data-[state=active]:bg-black data-[state=active]:text-white font-bold px-6 py-2 rounded-md transition-all"
+                        activeIndicatorClassName="bg-black shadow-none"
+                        className="data-[state=active]:text-white font-bold px-4 py-2 rounded-md transition-all w-full sm:w-auto"
                     >
                         <Lock className="w-4 h-4 mr-2" />
                         Security
@@ -306,14 +309,14 @@ export default function AdminSettingsPage() {
                                 <CardDescription>Manage password and authentication tokens.</CardDescription>
                             </CardHeader>
                             <CardContent className="pt-6 space-y-6">
-                                <div className="flex items-center justify-between p-5 border rounded-2xl bg-neutral-50/50 border-dashed border-neutral-300">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-5 border rounded-2xl bg-neutral-50/50 border-dashed border-neutral-300">
                                     <div className="space-y-1">
                                         <p className="text-sm font-bold text-neutral-900">Admin Password Reset</p>
                                         <p className="text-xs text-neutral-500 font-medium">Sends a secure 1-time link to {user?.email}</p>
                                     </div>
                                     <Button
                                         variant="outline"
-                                        className="border-black font-bold h-10 px-6 active:translate-y-0.5 transition-all hover:bg-black hover:text-white"
+                                        className="border-black font-bold h-10 px-6 active:translate-y-0.5 transition-all hover:bg-black hover:text-white w-full sm:w-auto"
                                         onClick={handleResetPassword}
                                         disabled={isResetting}
                                     >
@@ -321,7 +324,7 @@ export default function AdminSettingsPage() {
                                     </Button>
                                 </div>
 
-                                <div className="flex items-center justify-between p-5 border rounded-2xl bg-neutral-50/50 border-dashed border-neutral-300 opacity-60 grayscale cursor-not-allowed">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-5 border rounded-2xl bg-neutral-50/50 border-dashed border-neutral-300 opacity-60 grayscale cursor-not-allowed">
                                     <div className="space-y-1">
                                         <p className="text-sm font-bold text-neutral-900">Multi-Factor Auth (MFA)</p>
                                         <p className="text-xs text-neutral-500 font-medium">Add an extra layer of security via Authenticator app.</p>
@@ -337,12 +340,12 @@ export default function AdminSettingsPage() {
                                 <h4 className="font-bold text-sm uppercase tracking-wider">Danger Zone</h4>
                             </div>
                             <Separator className="bg-red-200" />
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="space-y-1">
                                     <p className="text-sm font-bold text-red-900">Sign out from all devices</p>
                                     <p className="text-xs text-red-600 font-medium">This will terminate all active administrative sessions.</p>
                                 </div>
-                                <Button variant="destructive" className="font-bold h-9 bg-red-600 hover:bg-red-700">
+                                <Button variant="destructive" className="font-bold h-9 bg-red-600 hover:bg-red-700 w-full sm:w-auto">
                                     Logout All
                                 </Button>
                             </div>

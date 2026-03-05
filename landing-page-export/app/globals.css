@@ -1,0 +1,244 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+    :root,
+    .dark {
+        --font-geist-sans: "Geist";
+        --font-geist-mono: "Geist Mono";
+
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 222.2 84% 4.9%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 222.2 84% 4.9%;
+
+        --primary: 222.2 47.4% 11.2%;
+        --primary-foreground: 210 40% 98%;
+
+        --secondary: 0 0% 98%;
+        --secondary-foreground: 222.2 47.4% 11.2%;
+
+        --muted: 0 0% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+
+        --accent: 0 0% 96.1%;
+        --accent-foreground: 222.2 47.4% 11.2%;
+
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+
+        --border: 0 0% 92%;
+        --input: 0 0% 92%;
+        --ring: 0 0% 0%;
+    }
+
+    * {
+        border-color: #000;
+    }
+
+    html {
+        background-color: #ffffff !important;
+        color: #111111;
+        display: block;
+        min-height: 100%;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        background-color: #ffffff !important;
+        color: #111111;
+        display: block;
+        min-height: 100vh;
+    }
+}
+
+.bg-blueprint {
+    background-color: #2563eb !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%) !important;
+    color: #ffffff !important;
+}
+
+.text-white-force {
+    color: #ffffff !important;
+}
+
+/* Custom styles for Hero Section */
+.dot-matrix-pattern {
+    background-image: radial-gradient(#d4d4d4 1px, transparent 1px);
+    background-size: 8px 8px;
+}
+
+.technical-grid {
+    background-size: 64px 64px;
+    background-image:
+        linear-gradient(to right, #f3f4f6 1px, transparent 1px),
+        linear-gradient(to bottom, #f3f4f6 1px, transparent 1px);
+}
+
+.technical-dot {
+    @apply w-1 h-1 bg-black rounded-full;
+}
+
+.connector-line {
+    @apply border border-black;
+}
+
+.node-corner {
+    @apply absolute w-1.5 h-1.5 bg-black rounded-full;
+}
+
+/* Bespoke Dashboard Frame Styles (User Requested) */
+.bespoke-frame {
+    border-left: 2px solid #000;
+    border-right: 2px solid #000;
+    max-width: calc(100% - 128px);
+    margin: 0 auto;
+    position: relative;
+    background: #fff;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-line {
+    border-bottom: 2px solid #000;
+}
+
+.card-border {
+    border: 2px solid #000;
+}
+
+@keyframes ticker {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-ticker {
+    animation: ticker 40s linear infinite;
+}
+
+.animate-ticker:hover {
+    animation-play-state: paused;
+}
+
+@keyframes data-input {
+    0% {
+        transform: translateX(-40px);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateX(0px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateX(0px);
+        opacity: 0;
+    }
+}
+
+@keyframes data-output {
+    0% {
+        transform: translateX(0px);
+        opacity: 0;
+    }
+
+    50% {
+        transform: translateX(0px);
+        opacity: 0;
+    }
+
+    70% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(40px);
+        opacity: 0;
+    }
+}
+
+@keyframes engine-rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-engine-rotate {
+    animation: engine-rotate 8s linear infinite;
+}
+
+.animate-data-input {
+    animation: data-input 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-data-output {
+    animation: data-output 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-engine-pulse {
+    animation: engine-pulse 2s ease-in-out infinite;
+}
+
+/* Premium Dash Animation (User Requested) */
+@keyframes premium-dash-blue {
+    from {
+        stroke-dashoffset: 400;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.animate-premium-dash-blue {
+    stroke: #2563eb;
+    stroke-dasharray: 12 188;
+    /* More frequent signals */
+    animation: premium-dash-blue 3s linear infinite;
+    opacity: 0.4;
+    /* Reduced transparency (made more subtle) */
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.3));
+}
+
+/* Logo 3D Spin Animation */
+@keyframes logo-spin-3d {
+    0% {
+        transform: rotateY(0deg);
+    }
+
+    100% {
+        transform: rotateY(360deg);
+    }
+}
+
+.hover-logo-3d:hover img {
+    animation: logo-spin-3d 1s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.hover-logo-3d {
+    perspective: 1000px;
+}

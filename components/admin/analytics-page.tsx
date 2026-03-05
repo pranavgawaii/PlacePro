@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/types/database.types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type StudentRow = Database["public"]["Tables"]["students"]["Row"];
@@ -167,7 +167,7 @@ export function AnalyticsPageClient() {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Academic Year 2024-25</p>
@@ -274,6 +274,21 @@ export function AnalyticsPageClient() {
         </div>
       </div>
 
+      <div className="bg-white rounded-lg card-border p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-base font-semibold">Seat Allocation Control</h2>
+          <p className="text-sm text-muted-foreground">
+            Manage labs, run seat allocation sessions, map students, and publish a session.
+          </p>
+        </div>
+        <Link
+          href="/admin/seat-allocation"
+          className="inline-flex h-9 items-center justify-center rounded-md border border-black px-4 text-sm font-medium transition-colors hover:bg-neutral-50"
+        >
+          Open Seat Allocation
+        </Link>
+      </div>
+
       {/* Placement Trends Chart */}
       <div className="bg-white rounded-lg card-border p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -315,7 +330,7 @@ export function AnalyticsPageClient() {
 
       {/* Live Placement Feed */}
       <div className="bg-white rounded-lg card-border overflow-hidden">
-        <div className="p-6 border-b border-neutral-200 flex justify-between items-center">
+        <div className="p-4 sm:p-6 border-b border-neutral-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-bold">Live Placement Feed</h2>
           <div className="flex gap-2">
             <button className="p-1.5 hover:bg-neutral-100 rounded text-muted-foreground transition-colors">
@@ -329,15 +344,15 @@ export function AnalyticsPageClient() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="min-w-[720px] w-full text-left text-sm">
             <thead className="bg-neutral-50 border-b border-neutral-200">
               <tr>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">Student</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">Company</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">Role</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">Package</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground">Status</th>
-                <th className="px-6 py-4 font-semibold text-muted-foreground text-right">Action</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-muted-foreground">Student</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-muted-foreground">Company</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-muted-foreground">Role</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-muted-foreground">Package</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-muted-foreground">Status</th>
+                <th className="px-4 sm:px-6 py-4 font-semibold text-muted-foreground text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
@@ -346,7 +361,7 @@ export function AnalyticsPageClient() {
                 const company = companies.find(c => c.id === app.company_id);
                 return (
                   <tr key={app.id} className="group hover:bg-neutral-50 transition-colors">
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-bold">
                           {student?.name?.[0] || "S"}
@@ -357,7 +372,7 @@ export function AnalyticsPageClient() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded flex items-center justify-center bg-black text-white font-bold text-[10px]">
                           {company?.name?.[0] || "C"}
@@ -365,9 +380,9 @@ export function AnalyticsPageClient() {
                         <span className="font-medium">{company?.name || "Company"}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">{company?.job_type || "Role"}</td>
-                    <td className="px-6 py-4 font-mono text-neutral-900">{company?.package_range || "-"}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 text-muted-foreground">{company?.job_type || "Role"}</td>
+                    <td className="px-4 sm:px-6 py-4 font-mono text-neutral-900">{company?.package_range || "-"}</td>
+                    <td className="px-4 sm:px-6 py-4">
                       {app.status === 'selected' ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -383,7 +398,7 @@ export function AnalyticsPageClient() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 sm:px-6 py-4 text-right">
                       <button className="text-neutral-400 hover:text-black transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
                       </button>
@@ -393,7 +408,7 @@ export function AnalyticsPageClient() {
               })}
               {applications.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">No recent activity</td>
+                  <td colSpan={6} className="px-4 sm:px-6 py-8 text-center text-muted-foreground">No recent activity</td>
                 </tr>
               )}
             </tbody>

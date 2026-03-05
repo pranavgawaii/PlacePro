@@ -255,9 +255,9 @@ export function CompaniesPage() {
         </Button>
       </div>
 
-      <div className="sticky top-0 z-10 -mx-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-3 border-b border-border/40">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
+      <div className="sticky top-0 z-10 mx-0 sm:-mx-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-0 sm:px-6 py-3 border-b border-border/40">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="relative w-full flex-1 md:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search companies..."
@@ -266,7 +266,7 @@ export function CompaniesPage() {
               className="pl-9 rounded-full bg-neutral-50 border-neutral-200 focus:bg-white transition-all"
             />
           </div>
-          <div className="flex items-center gap-2 border-l pl-3 ml-1">
+          <div className="flex items-center gap-2 md:border-l md:pl-3 md:ml-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9 rounded-full px-4 border-dashed">
@@ -289,14 +289,15 @@ export function CompaniesPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="ml-auto text-xs text-muted-foreground font-medium">
+          <div className="text-xs text-muted-foreground font-medium md:ml-auto md:text-right">
             {filteredCompanies.length} result{filteredCompanies.length !== 1 ? 's' : ''}
           </div>
         </div>
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow className="bg-neutral-50/50 hover:bg-neutral-50/50">
               <TableHead className="w-[30%]">Company</TableHead>
@@ -447,7 +448,8 @@ export function CompaniesPage() {
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </div>
 
       <AddCompanyModal

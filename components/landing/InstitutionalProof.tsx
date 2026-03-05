@@ -19,7 +19,7 @@ export function InstitutionalProof() {
             transition={{ duration: 1 }}
             className="py-10 bg-white border-y-2 border-black relative"
         >
-            <div className="max-w-[1200px] mx-auto px-8">
+            <div className="max-w-[1200px] mx-auto px-0 sm:px-8">
                 <p className="text-center text-xs font-mono font-bold text-gray-400 mb-8 uppercase tracking-[0.3em]">
                     Institutional Registry & Partners
                 </p>

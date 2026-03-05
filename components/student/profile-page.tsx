@@ -175,7 +175,7 @@ export function StudentProfilePage() {
     <div className="min-h-screen bg-white pb-20 font-sans text-neutral-900">
       {/* Header / Banner */}
       <div className="border-b border-neutral-200 bg-white">
-        <div className="max-w-5xl mx-auto px-6 py-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
           <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
 
 
@@ -224,7 +224,7 @@ export function StudentProfilePage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
 
         {/* Left Column: Personal & Links */}
         <div className="lg:col-span-4 space-y-8">

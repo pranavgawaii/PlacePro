@@ -162,7 +162,7 @@ export default function CompanyDetailPage() {
                 <Skeleton className="h-10 w-32" />
                 <div className="space-y-4">
                     <Skeleton className="h-40 w-full rounded-xl" />
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Skeleton className="h-96 col-span-2 rounded-xl" />
                         <Skeleton className="h-96 col-span-1 rounded-xl" />
                     </div>
@@ -177,7 +177,7 @@ export default function CompanyDetailPage() {
         <div className="min-h-screen bg-neutral-50/50 pb-20 font-sans">
             {/* Clean Header */}
             <div className="bg-white border-b border-neutral-200">
-                <div className="max-w-6xl mx-auto px-6 py-8">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
                     <div className="mb-6">
                         <Link href="/student/companies">
                             <Button variant="ghost" size="sm" className="pl-0 text-neutral-500 hover:text-black gap-2">
@@ -265,7 +265,7 @@ export default function CompanyDetailPage() {
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto px-6 py-8">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                     {/* Left Column: Information */}
@@ -303,17 +303,17 @@ export default function CompanyDetailPage() {
 
                         {/* Eligibility Breakdown */}
                         <div className="card-border bg-white rounded-lg overflow-hidden">
-                            <div className="px-6 py-4 border-b border-neutral-100">
+                            <div className="px-4 sm:px-6 py-4 border-b border-neutral-100">
                                 <h2 className="text-lg font-semibold text-neutral-900">Eligibility Criteria</h2>
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
+                                <table className="min-w-[720px] w-full text-left text-sm">
                                     <thead className="bg-neutral-50 text-neutral-500">
                                         <tr>
-                                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Criteria</th>
-                                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Required</th>
-                                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide">Your Profile</th>
-                                            <th className="px-6 py-3 font-medium text-xs uppercase tracking-wide text-right">Status</th>
+                                            <th className="px-4 sm:px-6 py-3 font-medium text-xs uppercase tracking-wide">Criteria</th>
+                                            <th className="px-4 sm:px-6 py-3 font-medium text-xs uppercase tracking-wide">Required</th>
+                                            <th className="px-4 sm:px-6 py-3 font-medium text-xs uppercase tracking-wide">Your Profile</th>
+                                            <th className="px-4 sm:px-6 py-3 font-medium text-xs uppercase tracking-wide text-right">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-neutral-100">
@@ -326,10 +326,10 @@ export default function CompanyDetailPage() {
                                             { label: "Profile Status", req: "Complete", val: student.profile_complete ? "Complete" : "Incomplete", pass: !!student.profile_complete }
                                         ].map((row, i) => (
                                             <tr key={i} className="hover:bg-neutral-50/50">
-                                                <td className="px-6 py-4 font-medium text-neutral-900">{row.label}</td>
-                                                <td className="px-6 py-4 text-neutral-600">{row.req}</td>
-                                                <td className="px-6 py-4 text-neutral-600">{row.val}</td>
-                                                <td className="px-6 py-4 text-right">
+                                                <td className="px-4 sm:px-6 py-4 font-medium text-neutral-900">{row.label}</td>
+                                                <td className="px-4 sm:px-6 py-4 text-neutral-600">{row.req}</td>
+                                                <td className="px-4 sm:px-6 py-4 text-neutral-600">{row.val}</td>
+                                                <td className="px-4 sm:px-6 py-4 text-right">
                                                     {row.pass ?
                                                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px] font-medium px-2 py-0.5 rounded-md">
                                                             Qualified
