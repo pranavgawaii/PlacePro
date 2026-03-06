@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -140,26 +140,11 @@ export function LoginForm() {
         </CardContent>
       </Card>
 
-      <div className="pt-8 border-t border-neutral-100 flex flex-col items-center">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-4">Institutional Helpdesk</p>
-        <div className="relative group w-full">
-          <a
-            href="https://mail.google.com/mail/?view=cm&fs=1&to=admin@placepro.in&su=PlacePro%20Support%20Request"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-3 px-8 py-3 bg-neutral-50 hover:bg-black hover:text-white border border-neutral-200 hover:border-black transition-all duration-300 relative group w-full rounded-sm"
-          >
-            <span className="text-[12px] font-bold tracking-tight">Contact System Administrator</span>
-            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-
-            {/* Architectural Dots for Premium Look */}
-            <div className="absolute top-1 left-1 w-1 h-1 bg-neutral-300 group-hover:bg-white rounded-full transition-colors"></div>
-            <div className="absolute top-1 right-1 w-1 h-1 bg-neutral-300 group-hover:bg-white rounded-full transition-colors"></div>
-            <div className="absolute bottom-1 left-1 w-1 h-1 bg-neutral-300 group-hover:bg-white rounded-full transition-colors"></div>
-            <div className="absolute bottom-1 right-1 w-1 h-1 bg-neutral-300 group-hover:bg-white rounded-full transition-colors"></div>
-          </a>
-        </div>
-        <p className="mt-4 text-[11px] text-neutral-400 font-medium italic">Verify credentials via your department TPO coordinator.</p>
+      <div className="text-center text-sm text-neutral-500">
+        Don&apos;t have an account?{" "}
+        <a href="mailto:admin@placepro.in?subject=PlacePro%20Account%20Request" className="font-medium text-neutral-900 hover:underline underline-offset-4">
+          Contact Admin
+        </a>
       </div>
     </div>
   );
