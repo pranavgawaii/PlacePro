@@ -36,6 +36,38 @@ const asError = (error: unknown, fallback = "Unexpected error"): Error => {
     return new Error(error);
   }
 
+  if (error && typeof error === "object") {
+    const value = error as {
+      message?: unknown;
+      code?: unknown;
+      details?: unknown;
+      hint?: unknown;
+    };
+
+    const message = typeof value.message === "string" ? value.message.trim() : "";
+    const code = typeof value.code === "string" ? value.code.trim() : "";
+    const details = typeof value.details === "string" ? value.details.trim() : "";
+    const hint = typeof value.hint === "string" ? value.hint.trim() : "";
+    const lowerMessage = message.toLowerCase();
+
+    if (code === "42P01" || lowerMessage.includes("does not exist")) {
+      return new Error("Seat allocation tables are missing. Run the latest Supabase seat allocation migrations.");
+    }
+
+    if (
+      code === "42501" ||
+      lowerMessage.includes("permission denied") ||
+      lowerMessage.includes("row-level security")
+    ) {
+      return new Error("Seat allocation permissions are not up to date. Apply the latest seat allocation RLS migration.");
+    }
+
+    if (message) {
+      const extraParts = [details, hint].filter(Boolean);
+      return new Error(extraParts.length > 0 ? `${message} ${extraParts.join(" ")}` : message);
+    }
+  }
+
   return new Error(fallback);
 };
 
@@ -706,25 +738,12 @@ export const getPublishedSeatForCurrentStudent = async (): Promise<PublishedSeat
     return null;
   }
 
-  const { data: sessionRow, error: sessionError } = await supabase
-    .from("allocation_sessions")
-    .select("id, published_at, created_at")
-    .eq("is_published", true)
-    .maybeSingle();
-
-  if (sessionError) {
-    throw asError(sessionError, "Unable to load published session.");
-  }
-
-  if (!sessionRow) {
-    return null;
-  }
-
   const { data: allocationRow, error: allocationError } = await supabase
     .from("allocations")
-    .select("seat_number, lab_name_snapshot")
-    .eq("session_id", sessionRow.id)
+    .select("session_id, seat_number, lab_name_snapshot, created_at")
     .eq("matched_student_id", studentRow.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (allocationError) {
@@ -735,11 +754,23 @@ export const getPublishedSeatForCurrentStudent = async (): Promise<PublishedSeat
     return null;
   }
 
+  let publishedAt: string | null = null;
+
+  const { data: sessionRow } = await supabase
+    .from("allocation_sessions")
+    .select("published_at")
+    .eq("id", allocationRow.session_id)
+    .maybeSingle();
+
+  if (sessionRow?.published_at) {
+    publishedAt = sessionRow.published_at;
+  }
+
   return {
-    session_id: sessionRow.id,
+    session_id: allocationRow.session_id,
     seat_number: allocationRow.seat_number,
     lab_name: allocationRow.lab_name_snapshot,
-    published_at: sessionRow.published_at,
-    created_at: sessionRow.created_at
+    published_at: publishedAt,
+    created_at: allocationRow.created_at
   };
 };

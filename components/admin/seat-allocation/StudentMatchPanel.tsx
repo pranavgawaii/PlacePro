@@ -70,10 +70,32 @@ export function StudentMatchPanel({
       .slice(0, 300);
   }, [students, normalizedStudentQuery]);
 
+  const studentById = useMemo(() => {
+    return new Map(students.map((student) => [student.id, student]));
+  }, [students]);
+
+  const filteredStudentIds = useMemo(() => {
+    return new Set(filteredStudents.map((student) => student.id));
+  }, [filteredStudents]);
+
   const mappedCount = rows.filter((row) => Boolean(row.matched_student_id)).length;
   const totalCount = rows.length;
   const mappingRatio = totalCount === 0 ? 0 : mappedCount / totalCount;
-  const canPublish = totalCount > 0 && mappingRatio >= mappingThreshold;
+  const hasCompleteMapping = totalCount > 0 && rows.every((row) => Boolean(row.matched_student_id));
+  const canPublish = hasCompleteMapping && mappingRatio >= mappingThreshold;
+
+  const getStudentOptions = (matchedStudentId: string | null): StudentMappingOption[] => {
+    if (!matchedStudentId || filteredStudentIds.has(matchedStudentId)) {
+      return filteredStudents;
+    }
+
+    const mappedStudent = studentById.get(matchedStudentId);
+    if (!mappedStudent) {
+      return filteredStudents;
+    }
+
+    return [mappedStudent, ...filteredStudents];
+  };
 
   return (
     <section className="rounded-lg card-border bg-white p-5 space-y-4">
@@ -165,7 +187,7 @@ export function StudentMatchPanel({
                       }}
                     >
                       <option value="">Unmapped</option>
-                      {filteredStudents.map((student) => (
+                      {getStudentOptions(row.matched_student_id).map((student) => (
                         <option key={student.id} value={student.id}>
                           {student.name} - {student.prn ?? "PRN pending"}
                         </option>

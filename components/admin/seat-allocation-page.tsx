@@ -263,6 +263,7 @@ export function SeatAllocationPage() {
       const publishedSession = await publishAllocationSession(selectedSessionId);
       toast.success("Seat allocation session published.");
       await refreshBaseData();
+      await refreshSessionData(publishedSession.id);
       setSelectedSessionId(publishedSession.id);
     } catch (publishError) {
       const message = publishError instanceof Error ? publishError.message : "Failed to publish session.";
