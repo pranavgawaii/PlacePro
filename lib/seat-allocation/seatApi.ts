@@ -50,8 +50,14 @@ const asError = (error: unknown, fallback = "Unexpected error"): Error => {
     const hint = typeof value.hint === "string" ? value.hint.trim() : "";
     const lowerMessage = message.toLowerCase();
 
-    if (code === "42P01" || lowerMessage.includes("does not exist")) {
-      return new Error("Seat allocation tables are missing. Run the latest Supabase seat allocation migrations.");
+    if (
+      code === "42P01" ||
+      code === "PGRST205" ||
+      lowerMessage.includes("does not exist") ||
+      lowerMessage.includes("schema cache") ||
+      lowerMessage.includes("could not find the table")
+    ) {
+      return new Error("Seat allocation tables are missing in Supabase. Apply the latest seat allocation migrations, then refresh the schema cache.");
     }
 
     if (
