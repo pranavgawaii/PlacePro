@@ -39,7 +39,7 @@ import {
   resolveSeatCandidate,
   updateLab,
   updateSeatAssignment,
-  updateSeatSessionTitle
+  updateSeatSessionDetails
 } from "@/lib/seat-allocation/seatApi";
 import type {
   Lab,
@@ -70,6 +70,34 @@ const formatDateTime = (value: string | null) => {
   return format(parsed, "dd MMM yyyy, hh:mm a");
 };
 
+const toDatetimeLocalValue = (value: string | null) => {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const hours = String(parsed.getHours()).padStart(2, "0");
+  const minutes = String(parsed.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const fromDatetimeLocalValue = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
 export function SeatAllocationPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,6 +107,7 @@ export function SeatAllocationPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createSourceMode, setCreateSourceMode] = useState<SeatSourceMode>("direct");
   const [createTitle, setCreateTitle] = useState(defaultSeatSessionTitle("direct"));
+  const [createScheduledAt, setCreateScheduledAt] = useState("");
 
   const [labs, setLabs] = useState<Lab[]>([]);
   const [sessions, setSessions] = useState<SeatSessionListItem[]>([]);
@@ -89,6 +118,7 @@ export function SeatAllocationPage() {
   const [candidates, setCandidates] = useState<SeatSessionCandidateView[]>([]);
   const [assignmentRows, setAssignmentRows] = useState<SeatAssignmentEditorRow[]>([]);
   const [titleDraft, setTitleDraft] = useState("");
+  const [scheduledAtDraft, setScheduledAtDraft] = useState("");
   const [savingTitle, setSavingTitle] = useState(false);
 
   const [labsBusy, setLabsBusy] = useState(false);
@@ -140,12 +170,14 @@ export function SeatAllocationPage() {
       setCandidates(nextCandidates);
       setAssignmentRows(nextAssignments);
       setTitleDraft(nextDetails.session.title);
+      setScheduledAtDraft(toDatetimeLocalValue(nextDetails.session.scheduled_at));
     } catch (sessionError) {
       const message = sessionError instanceof Error ? sessionError.message : "Failed to load session details.";
       toast.error(message);
       setSessionDetails(null);
       setCandidates([]);
       setAssignmentRows([]);
+      setScheduledAtDraft("");
     }
   }, []);
 
@@ -159,6 +191,7 @@ export function SeatAllocationPage() {
       setCandidates([]);
       setAssignmentRows([]);
       setTitleDraft("");
+      setScheduledAtDraft("");
       return;
     }
 
@@ -213,6 +246,7 @@ export function SeatAllocationPage() {
 
     setCreateSourceMode("direct");
     setCreateTitle(defaultSeatSessionTitle("direct"));
+    setCreateScheduledAt("");
   };
 
   const handleCreateSourceModeChange = (mode: SeatSourceMode) => {
@@ -225,7 +259,8 @@ export function SeatAllocationPage() {
     try {
       const nextSession = await createSeatSession({
         sourceMode: createSourceMode,
-        title: createTitle
+        title: createTitle,
+        scheduledAt: fromDatetimeLocalValue(createScheduledAt)
       });
       toast.success(`${nextSession.title} created.`);
       setCreateDialogOpen(false);
@@ -252,21 +287,26 @@ export function SeatAllocationPage() {
       return;
     }
 
-    if (nextTitle === selectedSession.title) {
+    if (
+      nextTitle === selectedSession.title &&
+      scheduledAtDraft === toDatetimeLocalValue(selectedSession.scheduled_at)
+    ) {
       return;
     }
 
     setSavingTitle(true);
     try {
-      const updatedSession = await updateSeatSessionTitle({
+      const updatedSession = await updateSeatSessionDetails({
         sessionId: selectedSession.id,
-        title: nextTitle
+        title: nextTitle,
+        scheduledAt: fromDatetimeLocalValue(scheduledAtDraft)
       });
       setTitleDraft(updatedSession.title);
-      toast.success("Draft title updated.");
+      setScheduledAtDraft(toDatetimeLocalValue(updatedSession.scheduled_at));
+      toast.success("Session details updated.");
       await syncAfterMutation(updatedSession.id);
     } catch (titleError) {
-      const message = titleError instanceof Error ? titleError.message : "Unable to update draft title.";
+      const message = titleError instanceof Error ? titleError.message : "Unable to update session details.";
       toast.error(message);
     } finally {
       setSavingTitle(false);
@@ -507,10 +547,12 @@ export function SeatAllocationPage() {
         open={createDialogOpen}
         sourceMode={createSourceMode}
         title={createTitle}
+        scheduledAt={createScheduledAt}
         creating={creatingSession}
         onOpenChange={handleCreateDialogChange}
         onSourceModeChange={handleCreateSourceModeChange}
         onTitleChange={setCreateTitle}
+        onScheduledAtChange={setCreateScheduledAt}
         onCreate={handleCreateSession}
       />
 
@@ -586,22 +628,40 @@ export function SeatAllocationPage() {
                     {activeEditorSession.source_mode}
                   </Badge>
                   <Badge variant="outline">Created {formatDateTime(activeEditorSession.created_at)}</Badge>
+                  {activeEditorSession.scheduled_at ? (
+                    <Badge variant="outline">Scheduled {formatDateTime(activeEditorSession.scheduled_at)}</Badge>
+                  ) : null}
                 </div>
-                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_240px_auto]">
                   <Input
                     value={titleDraft}
                     onChange={(event) => setTitleDraft(event.target.value)}
                     disabled={activeEditorSession.is_published || savingTitle}
-                    className="h-11 max-w-2xl text-base font-semibold"
+                    className="h-11 text-base font-semibold"
                     placeholder="Allocation title"
+                  />
+                  <Input
+                    type="datetime-local"
+                    value={scheduledAtDraft}
+                    onChange={(event) => setScheduledAtDraft(event.target.value)}
+                    disabled={activeEditorSession.is_published || savingTitle}
+                    className="h-11"
                   />
                   {activeEditorSession.is_published ? (
                     <Button variant="outline" onClick={() => void handleCreateRevision(activeEditorSession.id)}>
                       Create Revision
                     </Button>
                   ) : (
-                    <Button variant="outline" onClick={() => void handleSaveTitle()} disabled={savingTitle || titleDraft.trim() === activeEditorSession.title}>
-                      {savingTitle ? "Saving..." : "Save Title"}
+                    <Button
+                      variant="outline"
+                      onClick={() => void handleSaveTitle()}
+                      disabled={
+                        savingTitle ||
+                        (titleDraft.trim() === activeEditorSession.title &&
+                          scheduledAtDraft === toDatetimeLocalValue(activeEditorSession.scheduled_at))
+                      }
+                    >
+                      {savingTitle ? "Saving..." : "Save Details"}
                     </Button>
                   )}
                 </div>

@@ -66,6 +66,9 @@ export function SeatStudioSidebar({ details, publishing, onPublish, onOpenPrevie
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Session</p>
           <p className="mt-2 text-sm font-semibold text-neutral-900">{session.title}</p>
           <p className="mt-1 text-xs text-neutral-500">Source {session.source_mode} • Created {formatDateTime(session.created_at)}</p>
+          <p className="mt-2 text-xs font-medium text-neutral-700">
+            {session.scheduled_at ? `Scheduled ${formatDateTime(session.scheduled_at)}` : "Schedule not set yet"}
+          </p>
         </div>
         <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Readiness</p>

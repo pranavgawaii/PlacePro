@@ -12,10 +12,12 @@ interface CreateSeatSessionDialogProps {
   open: boolean;
   sourceMode: SeatSourceMode;
   title: string;
+  scheduledAt: string;
   creating?: boolean;
   onOpenChange: (open: boolean) => void;
   onSourceModeChange: (mode: SeatSourceMode) => void;
   onTitleChange: (title: string) => void;
+  onScheduledAtChange: (value: string) => void;
   onCreate: () => Promise<void>;
 }
 
@@ -23,10 +25,12 @@ export function CreateSeatSessionDialog({
   open,
   sourceMode,
   title,
+  scheduledAt,
   creating,
   onOpenChange,
   onSourceModeChange,
   onTitleChange,
+  onScheduledAtChange,
   onCreate
 }: CreateSeatSessionDialogProps) {
   useEffect(() => {
@@ -82,6 +86,22 @@ export function CreateSeatSessionDialog({
             />
             <p className="text-xs text-neutral-500">
               Use a company name, event name, or any label that helps your team identify this allocation session later.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="seat-session-schedule" className="text-sm font-semibold text-neutral-900">
+              Allocation date & time
+            </Label>
+            <Input
+              id="seat-session-schedule"
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(event) => onScheduledAtChange(event.target.value)}
+              className="h-11"
+            />
+            <p className="text-xs text-neutral-500">
+              This schedule is shown in the admin seat-allocation module and on the student dashboard card.
             </p>
           </div>
         </div>

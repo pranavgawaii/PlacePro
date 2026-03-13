@@ -72,6 +72,7 @@ export interface SeatStudentOption {
 export interface SeatSessionListItem {
   id: string;
   title: string;
+  scheduled_at: string | null;
   source_mode: SeatSourceMode;
   status: SeatSessionStatus;
   is_published: boolean;
@@ -145,6 +146,7 @@ export interface AutoAllocateSeatsResult {
 export interface PublishedSeatAssignment {
   session_id: string;
   session_title: string;
+  scheduled_at: string | null;
   seat_number: string;
   lab_name: string;
   published_at: string | null;

@@ -120,49 +120,45 @@ export function StudentDashboardPageSimple() {
                 </div>
 
                 {publishedSeat ? (
-                    <div className="relative overflow-hidden rounded-2xl card-border bg-white p-6">
-                        <div className="absolute inset-x-0 top-0 h-1 bg-blue-600" />
-                        <div className="absolute -right-12 top-8 h-28 w-28 rounded-full bg-blue-100/70 blur-2xl" />
-                        <div className="absolute -left-10 bottom-0 h-24 w-24 rounded-full bg-neutral-100 blur-2xl" />
-
-                        <div className="relative flex h-full flex-col justify-between gap-5">
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                                            Allocated Seat
-                                        </p>
-                                        <h3 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">
-                                            {publishedSeat.seat_number}
-                                        </h3>
-                                    </div>
-                                    <div className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                                        Final allocation
-                                    </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Lab</p>
-                                    <p className="mt-2 text-base font-semibold text-neutral-900">{publishedSeat.lab_name}</p>
-                                    <p className="mt-1 text-xs text-neutral-500">
-                                        {publishedSeat.session_title || `Session ${publishedSeat.session_id.slice(0, 8)}`}
-                                    </p>
+                    <div className="rounded-xl card-border bg-white p-4">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                                    Seat Allocation
+                                </p>
+                                <div className="mt-2 flex items-end gap-3">
+                                    <h3 className="text-2xl font-semibold tracking-tight text-neutral-950">
+                                        {publishedSeat.lab_name}
+                                    </h3>
+                                    <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-600">
+                                        Seat {publishedSeat.seat_number}
+                                    </span>
                                 </div>
                             </div>
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-700">
+                                <MapPin className="h-4.5 w-4.5" />
+                            </div>
+                        </div>
 
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Published</p>
-                                    <p className="mt-2 text-sm font-semibold text-neutral-900">
-                                        {publishedSeat.published_at
-                                            ? new Date(publishedSeat.published_at).toLocaleString()
-                                            : new Date(publishedSeat.created_at).toLocaleString()}
-                                    </p>
-                                </div>
-                                <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Status</p>
-                                    <p className="mt-2 text-sm font-semibold text-neutral-900">Visible on your dashboard</p>
-                                </div>
+                        <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+                            <div className="flex flex-wrap items-center gap-2 text-sm">
+                                <span className="font-semibold text-neutral-900">
+                                    {publishedSeat.session_title || `Session ${publishedSeat.session_id.slice(0, 8)}`}
+                                </span>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2 text-xs text-neutral-500">
+                                <Calendar className="h-3.5 w-3.5 text-neutral-400" />
+                                <span>
+                                    {publishedSeat.scheduled_at
+                                        ? new Date(publishedSeat.scheduled_at).toLocaleString("en-IN", {
+                                            dateStyle: "medium",
+                                            timeStyle: "short"
+                                        })
+                                        : new Date(publishedSeat.created_at).toLocaleString("en-IN", {
+                                            dateStyle: "medium",
+                                            timeStyle: "short"
+                                        })}
+                                </span>
                             </div>
                         </div>
                     </div>

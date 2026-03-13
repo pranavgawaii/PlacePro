@@ -121,6 +121,12 @@ export function SeatSessionGallery({
                   <span>Created {formatDateTime(session.created_at)}</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-neutral-400" />
+                  <span>
+                    {session.scheduled_at ? `Scheduled ${formatDateTime(session.scheduled_at)}` : "Schedule not set"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-neutral-400" />
                   <span>
                     {session.is_published ? `Published ${formatDateTime(session.published_at)}` : "Not published yet"}

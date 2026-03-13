@@ -35,7 +35,7 @@ interface AuthContext {
 
 const ACTIVE_CANDIDATE_STATUSES: CandidateMatchStatus[] = ["matched", "unmatched", "duplicate", "overflow"];
 const SESSION_SELECT_COLUMNS =
-  "id, owner_id, title, source_mode, status, is_published, published_at, published_by, created_at";
+  "id, owner_id, title, scheduled_at, source_mode, status, is_published, published_at, published_by, created_at";
 const LAB_SELECT_COLUMNS = "id, owner_id, lab_name, total_seats, rows, columns, seat_pattern, created_at, updated_at";
 
 const isAdminRole = (role: UserRole | null): boolean => role === "admin" || role === "super_admin";
@@ -507,6 +507,7 @@ export const listSeatSessions = async (limit = 20): Promise<SeatSessionListItem[
   return sessionRows.map((row) => ({
     id: row.id,
     title: row.title,
+    scheduled_at: row.scheduled_at,
     source_mode: row.source_mode,
     status: row.status,
     is_published: row.is_published,
@@ -524,6 +525,7 @@ export const listSeatSessions = async (limit = 20): Promise<SeatSessionListItem[
 export const createSeatSession = async (params: {
   sourceMode: SeatSourceMode;
   title?: string;
+  scheduledAt?: string | null;
 }): Promise<SeatSession> => {
   const { supabase, userId } = await requireAdminContext();
   const title = params.title?.trim() || defaultSeatSessionTitle(params.sourceMode);
@@ -532,6 +534,7 @@ export const createSeatSession = async (params: {
     .insert({
       owner_id: userId,
       title,
+      scheduled_at: params.scheduledAt ?? null,
       source_mode: params.sourceMode,
       status: "draft"
     })
@@ -1192,9 +1195,10 @@ export const getSeatSessionDetails = async (sessionId: string): Promise<SeatSess
   };
 };
 
-export const updateSeatSessionTitle = async (params: {
+export const updateSeatSessionDetails = async (params: {
   sessionId: string;
   title: string;
+  scheduledAt?: string | null;
 }): Promise<SeatSession> => {
   const { supabase } = await requireAdminContext();
   const title = params.title.trim();
@@ -1205,7 +1209,10 @@ export const updateSeatSessionTitle = async (params: {
 
   const { data, error } = await supabase
     .from("seat_sessions")
-    .update({ title })
+    .update({
+      title,
+      scheduled_at: params.scheduledAt ?? null
+    })
     .eq("id", params.sessionId)
     .select(SESSION_SELECT_COLUMNS)
     .single();
@@ -1265,11 +1272,12 @@ export const createSeatSessionRevision = async (params: {
     throw asError(assignmentsError, "Unable to load source seat assignments for revision.");
   }
 
-  const { data: sessionRow, error: sessionError } = await supabase
+      const { data: sessionRow, error: sessionError } = await supabase
     .from("seat_sessions")
     .insert({
       owner_id: userId,
       title: nextTitle,
+      scheduled_at: sourceSession.scheduled_at,
       source_mode: sourceSession.source_mode,
       status: "draft"
     })
@@ -1495,7 +1503,7 @@ export const getPublishedSeatForCurrentStudent = async (): Promise<PublishedSeat
 
   const { data: sessionRow, error: sessionError } = await supabase
     .from("seat_sessions")
-    .select("id, title, published_at")
+    .select("id, title, scheduled_at, published_at")
     .eq("is_published", true)
     .maybeSingle();
 
@@ -1561,6 +1569,7 @@ export const getPublishedSeatForCurrentStudent = async (): Promise<PublishedSeat
   return {
     session_id: sessionRow.id,
     session_title: sessionRow.title,
+    scheduled_at: sessionRow.scheduled_at,
     seat_number: assignmentRow.seat_number,
     lab_name: labRow.lab_name,
     published_at: sessionRow.published_at,
