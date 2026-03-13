@@ -6,20 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  detectHeaderMapping,
-  detectParseSource,
-  extractRowHeaders,
-  normalizeParsedRowsWithMapping,
-  parsePdfRows,
-  parseSpreadsheetTables
-} from "@/lib/seat-allocation/seatParsing";
 import type {
   HeaderMapping,
   ParseStudentsResult,
   ParsedRow,
   SpreadsheetTableCandidate
 } from "@/lib/seat-allocation/types";
+
+const loadSeatParsing = () => import("@/lib/seat-allocation/seatParsing");
 
 interface StudentUploadPanelProps {
   uploadSessionId: string | null;
@@ -69,13 +63,15 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
     setInvalidRows([]);
   };
 
-  const applyPreview = (rows: Record<string, unknown>[], nextMapping: HeaderMapping) => {
+  const applyPreview = async (rows: Record<string, unknown>[], nextMapping: HeaderMapping) => {
+    const { normalizeParsedRowsWithMapping } = await loadSeatParsing();
     const normalized = normalizeParsedRowsWithMapping(rows, nextMapping);
     setPreviewRows(normalized.parsedRows);
     setInvalidRows(normalized.invalidRows);
   };
 
-  const chooseTable = (table: SpreadsheetTableCandidate) => {
+  const chooseTable = async (table: SpreadsheetTableCandidate) => {
+    const { detectHeaderMapping, extractRowHeaders } = await loadSeatParsing();
     const extractedHeaders = table.headers.length > 0 ? table.headers : extractRowHeaders(table.rows);
     const detectedMapping = detectHeaderMapping(extractedHeaders);
 
@@ -83,10 +79,11 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
     setRawRows(table.rows);
     setHeaders(extractedHeaders);
     setMapping(detectedMapping);
-    applyPreview(table.rows, detectedMapping);
+    await applyPreview(table.rows, detectedMapping);
   };
 
-  const buildMergedTable = (candidates: SpreadsheetTableCandidate[]): SpreadsheetTableCandidate => {
+  const buildMergedTable = async (candidates: SpreadsheetTableCandidate[]): Promise<SpreadsheetTableCandidate> => {
+    const { extractRowHeaders } = await loadSeatParsing();
     const mergedRows = candidates.flatMap((table) => table.rows);
     const mergedHeaders = extractRowHeaders(mergedRows);
 
@@ -107,10 +104,20 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
     }
 
     const sorted = [...candidates].sort((left, right) => {
-      const leftMap = detectHeaderMapping(left.headers);
-      const rightMap = detectHeaderMapping(right.headers);
-      const leftScore = (leftMap.nameKey && leftMap.rollKey ? 1_000 : 0) + left.row_count;
-      const rightScore = (rightMap.nameKey && rightMap.rollKey ? 1_000 : 0) + right.row_count;
+      const leftHeaders = left.headers.map((header) => header.toLowerCase());
+      const rightHeaders = right.headers.map((header) => header.toLowerCase());
+      const leftHasName = leftHeaders.some((header) => header.includes("name"));
+      const leftHasRoll =
+        leftHeaders.some((header) => header.includes("roll")) ||
+        leftHeaders.some((header) => header.includes("enrollment")) ||
+        leftHeaders.some((header) => header.includes("prn"));
+      const rightHasName = rightHeaders.some((header) => header.includes("name"));
+      const rightHasRoll =
+        rightHeaders.some((header) => header.includes("roll")) ||
+        rightHeaders.some((header) => header.includes("enrollment")) ||
+        rightHeaders.some((header) => header.includes("prn"));
+      const leftScore = (leftHasName && leftHasRoll ? 1_000 : 0) + left.row_count;
+      const rightScore = (rightHasName && rightHasRoll ? 1_000 : 0) + right.row_count;
       return rightScore - leftScore;
     });
 
@@ -127,7 +134,8 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
     }
 
     try {
-      const source = detectParseSource(nextFile.name);
+      const seatParsing = await loadSeatParsing();
+      const source = seatParsing.detectParseSource(nextFile.name);
       if (!source) {
         throw new Error("Unsupported file type. Use .xlsx, .csv, or .pdf.");
       }
@@ -135,7 +143,7 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
       let detectedTables: SpreadsheetTableCandidate[];
 
       if (source === "pdf") {
-        const rows = await parsePdfRows(nextFile);
+        const rows = await seatParsing.parsePdfRows(nextFile);
         detectedTables = [
           {
             id: "pdf::1",
@@ -143,21 +151,22 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
             sheet_name: "PDF",
             table_index: 1,
             row_count: rows.length,
-            headers: extractRowHeaders(rows),
+            headers: seatParsing.extractRowHeaders(rows),
             rows
           }
         ];
       } else {
-        detectedTables = await parseSpreadsheetTables(nextFile);
+        detectedTables = await seatParsing.parseSpreadsheetTables(nextFile);
       }
 
       if (detectedTables.length === 0) {
         throw new Error("No valid table found in this file.");
       }
 
-      const tablesToUse = source !== "pdf" && detectedTables.length > 1
-        ? [buildMergedTable(detectedTables), ...detectedTables]
-        : detectedTables;
+      const tablesToUse =
+        source !== "pdf" && detectedTables.length > 1
+          ? [await buildMergedTable(detectedTables), ...detectedTables]
+          : detectedTables;
 
       setTables(tablesToUse);
 
@@ -166,7 +175,7 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
         throw new Error("Could not detect a usable table.");
       }
 
-      chooseTable(best);
+      await chooseTable(best);
     } catch (fileError) {
       const nextError = fileError instanceof Error ? fileError.message : "Failed to read file.";
       setError(nextError);
@@ -179,7 +188,8 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
       return;
     }
 
-    const source = detectParseSource(file.name);
+    const seatParsing = await loadSeatParsing();
+    const source = seatParsing.detectParseSource(file.name);
     if (!source) {
       setError("Unsupported file type. Use .xlsx, .csv, or .pdf.");
       return;
@@ -285,7 +295,7 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
                 onChange={(event) => {
                   const next = { ...mapping, nameKey: event.target.value || null };
                   setMapping(next);
-                  applyPreview(rawRows, next);
+                  void applyPreview(rawRows, next);
                 }}
                 className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none ring-0 focus:border-blue-300"
               >
@@ -306,7 +316,7 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
                 onChange={(event) => {
                   const next = { ...mapping, rollKey: event.target.value || null };
                   setMapping(next);
-                  applyPreview(rawRows, next);
+                  void applyPreview(rawRows, next);
                 }}
                 className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none ring-0 focus:border-blue-300"
               >
@@ -327,7 +337,7 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
                 onChange={(event) => {
                   const next = { ...mapping, departmentKey: event.target.value || null };
                   setMapping(next);
-                  applyPreview(rawRows, next);
+                  void applyPreview(rawRows, next);
                 }}
                 className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none ring-0 focus:border-blue-300"
               >
