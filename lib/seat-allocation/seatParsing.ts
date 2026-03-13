@@ -78,7 +78,7 @@ export const normalizeParsedRowsWithMapping = (
       parsedRows: [],
       invalidRows: rows.map((row, index) => ({
         row_index: index + 1,
-        reason: "Missing required mapped column (PRN).",
+        reason: "Missing required mapped column (Enrollment No).",
         raw_row: row
       }))
     };
@@ -101,7 +101,7 @@ export const normalizeParsedRowsWithMapping = (
     if (!prn) {
       invalidRows.push({
         row_index: index + 1,
-        reason: "Missing PRN value.",
+        reason: "Missing Enrollment No value.",
         raw_row: row
       });
       return;
@@ -110,7 +110,7 @@ export const normalizeParsedRowsWithMapping = (
     if (duplicateTracker.has(prn)) {
       invalidRows.push({
         row_index: index + 1,
-        reason: `Duplicate PRN in file: ${prn}`,
+        reason: `Duplicate Enrollment No in file: ${prn}`,
         raw_row: row
       });
       return;
@@ -191,7 +191,7 @@ export const parsePdfRows = async (file: File): Promise<Record<string, unknown>[
     }
 
     rows.push({
-      PRN: prnCandidate,
+      "Enrollment No": prnCandidate,
       Name: nameCandidate
     });
   }

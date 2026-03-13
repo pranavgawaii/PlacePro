@@ -51,6 +51,7 @@
     "lucide-react": "^0.468.0",
     "next": "^15.0.0",
     "papaparse": "^5.5.3",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.624",
     "puppeteer-core": "^23.11.1",
     "react": "^19.0.0",

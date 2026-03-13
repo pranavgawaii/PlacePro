@@ -11,6 +11,9 @@ import type {
   Lab,
   ParseSource,
   PublishedSeatAssignment,
+  SeatDocumentGenerationResult,
+  SeatDocumentPreview,
+  SeatExportMode,
   SeatAssignmentEditorRow,
   SeatSession,
   SeatSessionCandidate,
@@ -20,6 +23,7 @@ import type {
   SeatSourceMode,
   SeatStudentOption,
   SeatSummaryItem,
+  SeatPreviewGroup,
   SeatUploadRow
 } from "@/lib/seat-allocation/types";
 import type { Database, UserRole } from "@/types/database.types";
@@ -31,12 +35,14 @@ interface AuthContext {
 
 const ACTIVE_CANDIDATE_STATUSES: CandidateMatchStatus[] = ["matched", "unmatched", "duplicate", "overflow"];
 const SESSION_SELECT_COLUMNS =
-  "id, owner_id, source_mode, status, is_published, published_at, published_by, created_at";
+  "id, owner_id, title, source_mode, status, is_published, published_at, published_by, created_at";
 const LAB_SELECT_COLUMNS = "id, owner_id, lab_name, total_seats, rows, columns, seat_pattern, created_at, updated_at";
 
 const isAdminRole = (role: UserRole | null): boolean => role === "admin" || role === "super_admin";
 
 const normalizePrn = (value: string | null | undefined): string => String(value ?? "").trim().toUpperCase();
+const defaultSeatSessionTitle = (sourceMode: SeatSourceMode): string =>
+  sourceMode === "direct" ? "New Direct Draft" : "New Upload Draft";
 
 const asError = (error: unknown, fallback = "Unexpected error"): Error => {
   if (error instanceof Error) {
@@ -238,6 +244,45 @@ const syncSeatSessionStatus = async (
   }
 };
 
+const buildSeatPreviewGroups = (
+  rows: Array<{
+    student_id: string;
+    seat_number: string;
+    enrollment_no: string;
+    student_name: string;
+    branch: string | null;
+    lab_name: string;
+  }>,
+  exportMode: SeatExportMode
+): SeatPreviewGroup[] => {
+  if (exportMode === "full_list") {
+    return [
+      {
+        key: "all",
+        title: "Full List",
+        rows
+      }
+    ];
+  }
+
+  const map = new Map<string, SeatPreviewGroup>();
+  rows.forEach((row) => {
+    if (!map.has(row.lab_name)) {
+      map.set(row.lab_name, {
+        key: row.lab_name,
+        title: row.lab_name,
+        rows: []
+      });
+    }
+
+    map.get(row.lab_name)?.rows.push(row);
+  });
+
+  return Array.from(map.values()).sort((left, right) =>
+    left.title.localeCompare(right.title, undefined, { sensitivity: "base" })
+  );
+};
+
 export const listLabs = async (): Promise<Lab[]> => {
   const { supabase } = await requireAdminContext();
   const { data, error } = await supabase
@@ -381,22 +426,103 @@ export const listSeatSessions = async (limit = 20): Promise<SeatSessionListItem[
     throw asError(error, "Unable to load seat sessions.");
   }
 
-  return (data ?? []).map((row) => ({
+  const sessionRows = data ?? [];
+  const sessionIds = sessionRows.map((row) => row.id);
+
+  const [candidateStatsResult, assignmentStatsResult] = await Promise.all([
+    sessionIds.length > 0
+      ? supabase
+          .from("seat_session_candidates")
+          .select("session_id, match_status, student_id")
+          .in("session_id", sessionIds)
+      : Promise.resolve({ data: [], error: null }),
+    sessionIds.length > 0
+      ? supabase
+          .from("seat_assignments")
+          .select("session_id")
+          .in("session_id", sessionIds)
+      : Promise.resolve({ data: [], error: null })
+  ]);
+
+  if (candidateStatsResult.error) {
+    throw asError(candidateStatsResult.error, "Unable to load seat session candidate counts.");
+  }
+
+  if (assignmentStatsResult.error) {
+    throw asError(assignmentStatsResult.error, "Unable to load seat session assignment counts.");
+  }
+
+  const statsMap = new Map<
+    string,
+    {
+      total_candidates: number;
+      matched_candidates: number;
+      overflow_candidates: number;
+      assigned_candidates: number;
+    }
+  >();
+
+  sessionIds.forEach((sessionId) => {
+    statsMap.set(sessionId, {
+      total_candidates: 0,
+      matched_candidates: 0,
+      overflow_candidates: 0,
+      assigned_candidates: 0
+    });
+  });
+
+  (candidateStatsResult.data ?? []).forEach((row) => {
+    const current = statsMap.get(row.session_id);
+    if (!current) {
+      return;
+    }
+
+    current.total_candidates += 1;
+    if (row.match_status === "matched" && row.student_id) {
+      current.matched_candidates += 1;
+    }
+    if (row.match_status === "overflow") {
+      current.overflow_candidates += 1;
+    }
+  });
+
+  (assignmentStatsResult.data ?? []).forEach((row) => {
+    const current = statsMap.get(row.session_id);
+    if (!current) {
+      return;
+    }
+
+    current.assigned_candidates += 1;
+  });
+
+  return sessionRows.map((row) => ({
     id: row.id,
+    title: row.title,
     source_mode: row.source_mode,
     status: row.status,
     is_published: row.is_published,
     published_at: row.published_at,
-    created_at: row.created_at
+    created_at: row.created_at,
+    stats: statsMap.get(row.id) ?? {
+      total_candidates: 0,
+      matched_candidates: 0,
+      overflow_candidates: 0,
+      assigned_candidates: 0
+    }
   }));
 };
 
-export const createSeatSession = async (params: { sourceMode: SeatSourceMode }): Promise<SeatSession> => {
+export const createSeatSession = async (params: {
+  sourceMode: SeatSourceMode;
+  title?: string;
+}): Promise<SeatSession> => {
   const { supabase, userId } = await requireAdminContext();
+  const title = params.title?.trim() || defaultSeatSessionTitle(params.sourceMode);
   const { data, error } = await supabase
     .from("seat_sessions")
     .insert({
       owner_id: userId,
+      title,
       source_mode: params.sourceMode,
       status: "draft"
     })
@@ -537,7 +663,7 @@ export const importSeatCandidates = async (params: {
         source_mode: "upload",
         source_row_no: row.row_index,
         match_status: "duplicate",
-        error_message: "Duplicate PRN in file or already present in this session."
+        error_message: "Duplicate Enrollment No in file or already present in this session."
       });
       duplicateCount += 1;
       seenInImport.add(normalizedPrn);
@@ -571,7 +697,7 @@ export const importSeatCandidates = async (params: {
       source_mode: "upload",
       source_row_no: row.row_index,
       match_status: "unmatched",
-      error_message: "No student record found for this PRN."
+      error_message: "No student record found for this Enrollment No."
     });
     unmatchedCount += 1;
     seenInImport.add(normalizedPrn);
@@ -680,7 +806,7 @@ export const resolveSeatCandidate = async (params: {
   });
 
   if (hasConflict) {
-    throw new Error("That student or PRN is already active in this seat session.");
+    throw new Error("That student or Enrollment No is already active in this seat session.");
   }
 
   const { error } = await supabase
@@ -1065,6 +1191,189 @@ export const getSeatSessionDetails = async (sessionId: string): Promise<SeatSess
   };
 };
 
+export const updateSeatSessionTitle = async (params: {
+  sessionId: string;
+  title: string;
+}): Promise<SeatSession> => {
+  const { supabase } = await requireAdminContext();
+  const title = params.title.trim();
+
+  if (!title) {
+    throw new Error("Session title is required.");
+  }
+
+  const { data, error } = await supabase
+    .from("seat_sessions")
+    .update({ title })
+    .eq("id", params.sessionId)
+    .select(SESSION_SELECT_COLUMNS)
+    .single();
+
+  if (error || !data) {
+    throw asError(error, "Unable to update seat session title.");
+  }
+
+  return toSeatSession(data);
+};
+
+export const deleteSeatSession = async (sessionId: string): Promise<void> => {
+  const { supabase } = await requireAdminContext();
+  const session = await getSeatSession(supabase, sessionId);
+
+  if (session.is_published) {
+    throw new Error("Published sessions cannot be deleted. Create a revision instead.");
+  }
+
+  const { error } = await supabase
+    .from("seat_sessions")
+    .delete()
+    .eq("id", sessionId);
+
+  if (error) {
+    throw asError(error, "Unable to delete seat session.");
+  }
+};
+
+export const createSeatSessionRevision = async (params: {
+  sessionId: string;
+  title?: string;
+}): Promise<SeatSession> => {
+  const { supabase, userId } = await requireAdminContext();
+  const sourceSession = await getSeatSession(supabase, params.sessionId);
+
+  const nextTitle = params.title?.trim() || `${sourceSession.title} Revision`;
+
+  const [{ data: candidates, error: candidatesError }, { data: assignments, error: assignmentsError }] =
+    await Promise.all([
+      supabase
+        .from("seat_session_candidates")
+        .select("*")
+        .eq("session_id", params.sessionId)
+        .neq("match_status", "removed"),
+      supabase
+        .from("seat_assignments")
+        .select("*")
+        .eq("session_id", params.sessionId)
+    ]);
+
+  if (candidatesError) {
+    throw asError(candidatesError, "Unable to load source seat candidates for revision.");
+  }
+
+  if (assignmentsError) {
+    throw asError(assignmentsError, "Unable to load source seat assignments for revision.");
+  }
+
+  const { data: sessionRow, error: sessionError } = await supabase
+    .from("seat_sessions")
+    .insert({
+      owner_id: userId,
+      title: nextTitle,
+      source_mode: sourceSession.source_mode,
+      status: "draft"
+    })
+    .select(SESSION_SELECT_COLUMNS)
+    .single();
+
+  if (sessionError || !sessionRow) {
+    throw asError(sessionError, "Unable to create seat session revision.");
+  }
+
+  const revisionSession = toSeatSession(sessionRow);
+
+  if ((candidates ?? []).length > 0) {
+    const { error } = await supabase.from("seat_session_candidates").insert(
+      (candidates ?? []).map((candidate) => ({
+        session_id: revisionSession.id,
+        student_id: candidate.student_id,
+        prn: candidate.prn,
+        name_snapshot: candidate.name_snapshot,
+        branch_snapshot: candidate.branch_snapshot,
+        source_mode: candidate.source_mode,
+        source_row_no: candidate.source_row_no,
+        match_status: candidate.match_status,
+        error_message: candidate.error_message
+      }))
+    );
+
+    if (error) {
+      throw asError(error, "Unable to copy seat candidates into the revision draft.");
+    }
+  }
+
+  if ((assignments ?? []).length > 0) {
+    const { error } = await supabase.from("seat_assignments").insert(
+      (assignments ?? []).map((assignment) => ({
+        session_id: revisionSession.id,
+        student_id: assignment.student_id,
+        lab_id: assignment.lab_id,
+        seat_number: assignment.seat_number
+      }))
+    );
+
+    if (error) {
+      throw asError(error, "Unable to copy seat assignments into the revision draft.");
+    }
+  }
+
+  await syncSeatSessionStatus(supabase, revisionSession.id);
+  return await getSeatSession(supabase, revisionSession.id);
+};
+
+export const getSeatDocumentPreview = async (
+  sessionId: string,
+  exportMode: SeatExportMode
+): Promise<SeatDocumentPreview> => {
+  const { supabase } = await requireAdminContext();
+
+  const { data, error } = await supabase
+    .from("seat_assignments")
+    .select(`
+      student_id,
+      seat_number,
+      labs!seat_assignments_lab_id_fkey(lab_name),
+      students!seat_assignments_student_id_fkey(name, prn, branch)
+    `)
+    .eq("session_id", sessionId);
+
+  if (error) {
+    throw asError(error, "Unable to load seat document preview.");
+  }
+
+  const previewRows = (data ?? []) as Array<{
+    student_id: string;
+    seat_number: string;
+    labs: { lab_name: string } | null;
+    students: { name: string; prn: string | null; branch: string | null } | null;
+  }>;
+
+  const rows = previewRows
+    .map((row) => ({
+      student_id: row.student_id,
+      seat_number: row.seat_number,
+      enrollment_no: normalizePrn(row.students?.prn),
+      student_name: row.students?.name ?? "Student",
+      branch: row.students?.branch ?? null,
+      lab_name: row.labs?.lab_name ?? "Unknown Lab"
+    }))
+    .sort((left, right) => {
+      const labCompare = left.lab_name.localeCompare(right.lab_name, undefined, { sensitivity: "base" });
+      if (labCompare !== 0) {
+        return labCompare;
+      }
+      return compareSeatNumbers(left.seat_number, right.seat_number);
+    });
+
+  const seatingGroups = buildSeatPreviewGroups(rows, exportMode);
+  const attendanceGroups = buildSeatPreviewGroups(rows, exportMode);
+
+  return {
+    export_mode: exportMode,
+    seating_groups: seatingGroups,
+    attendance_groups: attendanceGroups
+  };
+};
+
 export const publishSeatSession = async (sessionId: string): Promise<SeatSession> => {
   const { supabase } = await requireAdminContext();
   const { data, error } = await supabase.rpc("publish_seat_session", {
@@ -1083,16 +1392,49 @@ export const publishSeatSession = async (sessionId: string): Promise<SeatSession
   return toSeatSession(sessionRow as SeatSession);
 };
 
+export const generateSeatDocuments = async (params: {
+  sessionId: string;
+  formats: Array<"pdf" | "xlsx">;
+  exportMode: SeatExportMode;
+}): Promise<SeatDocumentGenerationResult> => {
+  const response = await fetch("/api/admin/seat-allocation/documents", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      sessionId: params.sessionId,
+      formats: params.formats,
+      exportMode: params.exportMode
+    })
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | (SeatDocumentGenerationResult & { error?: string })
+    | null;
+
+  if (!response.ok) {
+    throw new Error(payload?.error ?? "Unable to generate seat documents.");
+  }
+
+  return {
+    seat_pdf_url: payload?.seat_pdf_url,
+    attendance_pdf_url: payload?.attendance_pdf_url,
+    workbook_url: payload?.workbook_url,
+    generated_at: payload?.generated_at ?? new Date().toISOString()
+  };
+};
+
 export const downloadSeatTemplate = async (): Promise<void> => {
   const XLSX = await import("xlsx");
   const workbook = XLSX.utils.book_new();
   const worksheet = XLSX.utils.json_to_sheet([
-    { prn: "ADT23SOCB0741", name: "Aarav Sharma", branch: "CSE" },
-    { prn: "ADT23SOCB0742", name: "Siya Patil", branch: "ECE" },
-    { prn: "ADT23SOCB0743", name: "Vedant Joshi", branch: "ENTC" }
+    { Name: "Aarav Sharma", "Enrollment No": "ADT23SOCB0741", Branch: "CSE" },
+    { Name: "Siya Patil", "Enrollment No": "ADT23SOCB0742", Branch: "ECE" },
+    { Name: "Vedant Joshi", "Enrollment No": "ADT23SOCB0743", Branch: "ENTC" }
   ]);
 
-  worksheet["!cols"] = [{ wch: 18 }, { wch: 24 }, { wch: 12 }];
+  worksheet["!cols"] = [{ wch: 24 }, { wch: 18 }, { wch: 12 }];
   XLSX.utils.book_append_sheet(workbook, worksheet, "Seat Allocation");
   XLSX.writeFile(workbook, "placepro_seat_allocation_template.xlsx");
 };
@@ -1116,7 +1458,7 @@ export const getPublishedSeatForCurrentStudent = async (): Promise<PublishedSeat
 
   const { data: sessionRow, error: sessionError } = await supabase
     .from("seat_sessions")
-    .select("id, published_at")
+    .select("id, title, published_at")
     .eq("is_published", true)
     .maybeSingle();
 
@@ -1159,6 +1501,7 @@ export const getPublishedSeatForCurrentStudent = async (): Promise<PublishedSeat
 
   return {
     session_id: sessionRow.id,
+    session_title: sessionRow.title,
     seat_number: assignmentRow.seat_number,
     lab_name: labRow.lab_name,
     published_at: sessionRow.published_at,

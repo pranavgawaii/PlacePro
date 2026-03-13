@@ -48,7 +48,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
   const editableUploadSession = session && session.source_mode === "upload" && !session.is_published ? session : null;
   const summaryText = useMemo(() => {
     if (previewRows.length === 0 && invalidRows.length === 0) {
-      return "Upload a file to preview PRNs before importing them into a draft session.";
+      return "Upload a file to preview Enrollment Numbers before importing them into a draft session.";
     }
 
     return `${previewRows.length} rows ready, ${invalidRows.length} invalid rows`;
@@ -111,8 +111,14 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
     const sorted = [...candidates].sort((left, right) => {
       const leftHeaders = left.headers.map((header) => header.toLowerCase());
       const rightHeaders = right.headers.map((header) => header.toLowerCase());
-      const leftScore = (leftHeaders.some((header) => header.includes("prn")) ? 1000 : 0) + left.row_count;
-      const rightScore = (rightHeaders.some((header) => header.includes("prn")) ? 1000 : 0) + right.row_count;
+      const leftScore =
+        (leftHeaders.some((header) => header.includes("prn") || header.includes("enroll") || header.includes("enrol"))
+          ? 1000
+          : 0) + left.row_count;
+      const rightScore =
+        (rightHeaders.some((header) => header.includes("prn") || header.includes("enroll") || header.includes("enrol"))
+          ? 1000
+          : 0) + right.row_count;
       return rightScore - leftScore;
     });
 
@@ -196,12 +202,12 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
     }
 
     if (!mapping.prnKey) {
-      setError("Map the PRN column before importing.");
+      setError("Map the Enrollment No column before importing.");
       return;
     }
 
     if (previewRows.length === 0) {
-      setError("No valid PRN rows are available to import.");
+      setError("No valid Enrollment No rows are available to import.");
       return;
     }
 
@@ -243,7 +249,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
         <div>
           <h3 className="text-lg font-semibold text-neutral-900">Upload Candidate List</h3>
           <p className="text-sm text-neutral-600">
-            Import PRNs from Excel, CSV, or PDF, then review matched and unmatched rows before allocation.
+            Import candidates from Excel, CSV, or PDF using Name, Enrollment No, and Branch, then review matches before allocation.
           </p>
         </div>
         <Button variant="outline" onClick={() => void handleTemplateDownload()} disabled={downloadingTemplate}>
@@ -260,10 +266,10 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
             </Label>
             <p className="mt-1 text-xs text-neutral-500">Accepted: .xlsx, .xls, .csv, .pdf</p>
           </div>
-          {editableUploadSession ? (
-            <Badge variant="outline" className="gap-1 border-blue-200 bg-blue-50 text-blue-700">
+        {editableUploadSession ? (
+          <Badge variant="outline" className="gap-1 border-blue-200 bg-blue-50 text-blue-700">
               <FileSpreadsheet className="h-3.5 w-3.5" />
-              Draft {editableUploadSession.id.slice(0, 8)}
+              Upload draft ready
             </Badge>
           ) : (
             <Badge variant="outline">Upload draft required</Badge>
@@ -317,7 +323,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Column mapping</p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="map-prn">PRN column</Label>
+              <Label htmlFor="map-prn">Enrollment No column</Label>
               <select
                 id="map-prn"
                 value={mapping.prnKey ?? ""}
@@ -398,7 +404,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
             <table className="w-full text-sm">
               <thead className="bg-neutral-50 text-neutral-600">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold">PRN</th>
+                  <th className="px-3 py-2 text-left font-semibold">Enrollment No</th>
                   <th className="px-3 py-2 text-left font-semibold">Name</th>
                   <th className="px-3 py-2 text-left font-semibold">Branch</th>
                 </tr>

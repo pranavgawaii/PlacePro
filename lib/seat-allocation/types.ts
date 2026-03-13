@@ -4,6 +4,8 @@ export type ParseSource = "xlsx" | "csv" | "pdf";
 export type SeatSourceMode = "direct" | "upload";
 export type SeatSessionStatus = "draft" | "ready" | "published";
 export type CandidateMatchStatus = "matched" | "unmatched" | "duplicate" | "overflow" | "removed";
+export type SeatExportMode = "per_lab" | "full_list";
+export type SeatDocumentKind = "seating" | "attendance";
 
 export type Lab = Database["public"]["Tables"]["labs"]["Row"];
 export type SeatSession = Database["public"]["Tables"]["seat_sessions"]["Row"];
@@ -69,11 +71,18 @@ export interface SeatStudentOption {
 
 export interface SeatSessionListItem {
   id: string;
+  title: string;
   source_mode: SeatSourceMode;
   status: SeatSessionStatus;
   is_published: boolean;
   published_at: string | null;
   created_at: string;
+  stats: {
+    total_candidates: number;
+    matched_candidates: number;
+    overflow_candidates: number;
+    assigned_candidates: number;
+  };
 }
 
 export interface SeatSessionCandidateView {
@@ -135,8 +144,37 @@ export interface AutoAllocateSeatsResult {
 
 export interface PublishedSeatAssignment {
   session_id: string;
+  session_title: string;
   seat_number: string;
   lab_name: string;
   published_at: string | null;
   created_at: string;
+}
+
+export interface SeatPreviewRow {
+  student_id: string;
+  seat_number: string;
+  enrollment_no: string;
+  student_name: string;
+  branch: string | null;
+  lab_name: string;
+}
+
+export interface SeatPreviewGroup {
+  key: string;
+  title: string;
+  rows: SeatPreviewRow[];
+}
+
+export interface SeatDocumentPreview {
+  export_mode: SeatExportMode;
+  seating_groups: SeatPreviewGroup[];
+  attendance_groups: SeatPreviewGroup[];
+}
+
+export interface SeatDocumentGenerationResult {
+  seat_pdf_url?: string;
+  attendance_pdf_url?: string;
+  workbook_url?: string;
+  generated_at: string;
 }

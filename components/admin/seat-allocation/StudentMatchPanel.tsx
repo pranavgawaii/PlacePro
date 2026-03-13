@@ -126,7 +126,7 @@ export function StudentMatchPanel({
         <div>
           <h3 className="text-lg font-semibold text-neutral-900">Candidate Review</h3>
           <p className="text-sm text-neutral-600">
-            Resolve unmatched PRNs, remove duplicate rows, and clear overflow before publish.
+            Resolve unmatched Enrollment Numbers, remove duplicate rows, and clear overflow before publish.
           </p>
         </div>
         <Badge variant="outline">Active rows {candidates.length}</Badge>
@@ -135,7 +135,12 @@ export function StudentMatchPanel({
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)]">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search PRN, name, or issue" className="pl-9" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search Enrollment No, name, or issue"
+            className="pl-9"
+          />
         </div>
         <select
           value={statusFilter}
@@ -212,7 +217,7 @@ export function StudentMatchPanel({
                             <option value="">Choose student</option>
                             {filteredStudents.map((student) => (
                               <option key={student.id} value={student.id}>
-                                {student.name} - {student.prn ?? "PRN pending"}
+                                {student.name} - {student.prn ?? "Enrollment pending"}
                               </option>
                             ))}
                           </select>

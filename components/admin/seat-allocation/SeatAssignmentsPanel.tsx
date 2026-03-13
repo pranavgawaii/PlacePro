@@ -119,9 +119,9 @@ export function SeatAssignmentsPanel({
     <section className="rounded-lg card-border bg-white p-5 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Edit Assignments</h3>
+          <h3 className="text-lg font-semibold text-neutral-900">Assignment Studio</h3>
           <p className="text-sm text-neutral-600">
-            Auto allocation fills the grid first. You can still fine-tune lab and seat placement before publish.
+            Auto allocation fills the layout first. You can still fine-tune labs and seat numbers before publish.
           </p>
         </div>
         {editableSession ? (
@@ -129,7 +129,7 @@ export function SeatAssignmentsPanel({
             Editable draft
           </Badge>
         ) : (
-          <Badge variant="outline">Read only</Badge>
+          <Badge variant="outline">Published preview</Badge>
         )}
       </div>
 
@@ -138,7 +138,7 @@ export function SeatAssignmentsPanel({
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by student, PRN, branch, or seat"
+          placeholder="Search by student, Enrollment No, branch, or seat"
           className="pl-9"
         />
       </div>

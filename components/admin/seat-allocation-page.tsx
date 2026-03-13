@@ -1,25 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AllocationControls } from "@/components/admin/seat-allocation/AllocationControls";
-import { AllocationSummary } from "@/components/admin/seat-allocation/AllocationSummary";
+import { CreateSeatSessionDialog } from "@/components/admin/seat-allocation/CreateSeatSessionDialog";
 import { DirectSelectionPanel } from "@/components/admin/seat-allocation/DirectSelectionPanel";
 import { LabsManager } from "@/components/admin/seat-allocation/LabsManager";
 import { SeatAssignmentsPanel } from "@/components/admin/seat-allocation/SeatAssignmentsPanel";
+import { SeatDocumentPreviewPanel } from "@/components/admin/seat-allocation/SeatDocumentPreviewPanel";
+import { SeatSessionGallery } from "@/components/admin/seat-allocation/SeatSessionGallery";
+import { SeatStudioSidebar } from "@/components/admin/seat-allocation/SeatStudioSidebar";
 import { StudentMatchPanel } from "@/components/admin/seat-allocation/StudentMatchPanel";
 import { StudentUploadPanel } from "@/components/admin/seat-allocation/StudentUploadPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   addDirectCandidates,
   autoAllocateSeats,
   createLab,
   createSeatSession,
+  createSeatSessionRevision,
   deleteLab,
+  deleteSeatSession,
   downloadSeatTemplate,
   getSeatSessionDetails,
   importSeatCandidates,
@@ -33,7 +38,8 @@ import {
   removeSeatCandidate,
   resolveSeatCandidate,
   updateLab,
-  updateSeatAssignment
+  updateSeatAssignment,
+  updateSeatSessionTitle
 } from "@/lib/seat-allocation/seatApi";
 import type {
   Lab,
@@ -48,10 +54,17 @@ import type {
   SeatUploadRow
 } from "@/lib/seat-allocation/types";
 
-const formatDateTime = (value: string): string => {
+const defaultSeatSessionTitle = (sourceMode: SeatSourceMode) =>
+  sourceMode === "direct" ? "New Direct Draft" : "New Upload Draft";
+
+const formatDateTime = (value: string | null) => {
+  if (!value) {
+    return "—";
+  }
+
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    return "—";
+    return value;
   }
 
   return format(parsed, "dd MMM yyyy, hh:mm a");
@@ -61,16 +74,22 @@ export function SeatAllocationPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
+  const [viewMode, setViewMode] = useState<"gallery" | "editor">("gallery");
+  const [editorIntent, setEditorIntent] = useState<"studio" | "preview">("studio");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createSourceMode, setCreateSourceMode] = useState<SeatSourceMode>("direct");
+  const [createTitle, setCreateTitle] = useState(defaultSeatSessionTitle("direct"));
 
   const [labs, setLabs] = useState<Lab[]>([]);
   const [sessions, setSessions] = useState<SeatSessionListItem[]>([]);
   const [students, setStudents] = useState<SeatStudentOption[]>([]);
 
-  const [sourceMode, setSourceMode] = useState<SeatSourceMode>("direct");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [sessionDetails, setSessionDetails] = useState<SeatSessionDetails | null>(null);
   const [candidates, setCandidates] = useState<SeatSessionCandidateView[]>([]);
   const [assignmentRows, setAssignmentRows] = useState<SeatAssignmentEditorRow[]>([]);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
 
   const [labsBusy, setLabsBusy] = useState(false);
   const [allocating, setAllocating] = useState(false);
@@ -78,11 +97,9 @@ export function SeatAllocationPage() {
   const [assignmentBusyId, setAssignmentBusyId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
 
-  const selectedSession = useMemo<SeatSession | null>(
-    () => sessionDetails?.session ?? null,
-    [sessionDetails]
-  );
+  const previewRef = useRef<HTMLDivElement | null>(null);
 
+  const selectedSession = useMemo<SeatSession | null>(() => sessionDetails?.session ?? null, [sessionDetails]);
   const refreshBaseData = useCallback(async () => {
     setRefreshing(true);
 
@@ -100,7 +117,7 @@ export function SeatAllocationPage() {
         if (current && nextSessions.some((session) => session.id === current)) {
           return current;
         }
-        return nextSessions[0]?.id ?? null;
+        return current ?? nextSessions[0]?.id ?? null;
       });
     } catch (refreshError) {
       const message = refreshError instanceof Error ? refreshError.message : "Failed to load seat allocation data.";
@@ -122,7 +139,7 @@ export function SeatAllocationPage() {
       setSessionDetails(nextDetails);
       setCandidates(nextCandidates);
       setAssignmentRows(nextAssignments);
-      setSourceMode(nextDetails.session.source_mode);
+      setTitleDraft(nextDetails.session.title);
     } catch (sessionError) {
       const message = sessionError instanceof Error ? sessionError.message : "Failed to load session details.";
       toast.error(message);
@@ -141,20 +158,163 @@ export function SeatAllocationPage() {
       setSessionDetails(null);
       setCandidates([]);
       setAssignmentRows([]);
+      setTitleDraft("");
       return;
     }
 
     void refreshSessionData(selectedSessionId);
   }, [refreshSessionData, selectedSessionId]);
 
-  const syncAfterMutation = useCallback(async (sessionId?: string | null) => {
-    await refreshBaseData();
-    const nextId = sessionId ?? selectedSessionId;
-    if (nextId) {
-      await refreshSessionData(nextId);
-      setSelectedSessionId(nextId);
+  useEffect(() => {
+    if (viewMode !== "editor" || editorIntent !== "preview") {
+      return;
     }
-  }, [refreshBaseData, refreshSessionData, selectedSessionId]);
+
+    const node = previewRef.current;
+    if (!node) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [editorIntent, sessionDetails, viewMode]);
+
+  const syncAfterMutation = useCallback(
+    async (sessionId?: string | null) => {
+      await refreshBaseData();
+      const nextId = sessionId ?? selectedSessionId;
+      if (nextId) {
+        await refreshSessionData(nextId);
+        setSelectedSessionId(nextId);
+      }
+    },
+    [refreshBaseData, refreshSessionData, selectedSessionId]
+  );
+
+  const handleOpenSession = (sessionId: string, nextIntent: "studio" | "preview" = "studio") => {
+    setSelectedSessionId(sessionId);
+    setViewMode("editor");
+    setEditorIntent(nextIntent);
+  };
+
+  const handleBackToGallery = () => {
+    setViewMode("gallery");
+    setEditorIntent("studio");
+  };
+
+  const handleCreateDialogChange = (open: boolean) => {
+    setCreateDialogOpen(open);
+    if (open) {
+      return;
+    }
+
+    setCreateSourceMode("direct");
+    setCreateTitle(defaultSeatSessionTitle("direct"));
+  };
+
+  const handleCreateSourceModeChange = (mode: SeatSourceMode) => {
+    setCreateSourceMode(mode);
+    setCreateTitle(defaultSeatSessionTitle(mode));
+  };
+
+  const handleCreateSession = async () => {
+    setCreatingSession(true);
+    try {
+      const nextSession = await createSeatSession({
+        sourceMode: createSourceMode,
+        title: createTitle
+      });
+      toast.success(`${nextSession.title} created.`);
+      setCreateDialogOpen(false);
+      setSelectedSessionId(nextSession.id);
+      setViewMode("editor");
+      setEditorIntent("studio");
+      await syncAfterMutation(nextSession.id);
+    } catch (sessionError) {
+      const message = sessionError instanceof Error ? sessionError.message : "Failed to create seat session.";
+      toast.error(message);
+    } finally {
+      setCreatingSession(false);
+    }
+  };
+
+  const handleSaveTitle = async () => {
+    if (!selectedSession || selectedSession.is_published) {
+      return;
+    }
+
+    const nextTitle = titleDraft.trim();
+    if (!nextTitle) {
+      toast.error("Draft title is required.");
+      return;
+    }
+
+    if (nextTitle === selectedSession.title) {
+      return;
+    }
+
+    setSavingTitle(true);
+    try {
+      const updatedSession = await updateSeatSessionTitle({
+        sessionId: selectedSession.id,
+        title: nextTitle
+      });
+      setTitleDraft(updatedSession.title);
+      toast.success("Draft title updated.");
+      await syncAfterMutation(updatedSession.id);
+    } catch (titleError) {
+      const message = titleError instanceof Error ? titleError.message : "Unable to update draft title.";
+      toast.error(message);
+    } finally {
+      setSavingTitle(false);
+    }
+  };
+
+  const handleCreateRevision = async (sessionId: string) => {
+    const baseTitle = sessions.find((session) => session.id === sessionId)?.title ?? "Seat Session";
+
+    try {
+      const nextRevision = await createSeatSessionRevision({
+        sessionId,
+        title: `${baseTitle} Revision`
+      });
+      toast.success("Revision draft created.");
+      setSelectedSessionId(nextRevision.id);
+      setViewMode("editor");
+      setEditorIntent("studio");
+      await syncAfterMutation(nextRevision.id);
+    } catch (revisionError) {
+      const message = revisionError instanceof Error ? revisionError.message : "Unable to create revision draft.";
+      toast.error(message);
+    }
+  };
+
+  const handleDeleteDraft = async (sessionId: string) => {
+    const target = sessions.find((session) => session.id === sessionId);
+    const confirmed = window.confirm(`Delete ${target?.title ?? "this draft"}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteSeatSession(sessionId);
+      toast.success("Draft deleted.");
+      if (selectedSessionId === sessionId) {
+        setSelectedSessionId(null);
+        setSessionDetails(null);
+        setCandidates([]);
+        setAssignmentRows([]);
+        setViewMode("gallery");
+      }
+      await refreshBaseData();
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : "Unable to delete draft.";
+      toast.error(message);
+    }
+  };
 
   const handleLabCreate = async (payload: {
     lab_name: string;
@@ -196,24 +356,9 @@ export function SeatAllocationPage() {
     try {
       await deleteLab(labId);
       toast.success("Lab deleted.");
-      await syncAfterMutation();
+      await syncAfterMutation(selectedSessionId);
     } finally {
       setLabsBusy(false);
-    }
-  };
-
-  const handleCreateSession = async () => {
-    setCreatingSession(true);
-    try {
-      const nextSession = await createSeatSession({ sourceMode });
-      toast.success(`${sourceMode === "direct" ? "Direct" : "Upload"} draft created.`);
-      setSelectedSessionId(nextSession.id);
-      await syncAfterMutation(nextSession.id);
-    } catch (sessionError) {
-      const message = sessionError instanceof Error ? sessionError.message : "Failed to create seat session.";
-      toast.error(message);
-    } finally {
-      setCreatingSession(false);
     }
   };
 
@@ -340,8 +485,10 @@ export function SeatAllocationPage() {
     }
   };
 
-  const sourceScopedSession = selectedSession?.source_mode === sourceMode ? selectedSession : null;
   const totalPublished = sessions.filter((session) => session.is_published).length;
+  const readyDrafts = sessions.filter((session) => !session.is_published && session.status === "ready").length;
+  const totalCandidates = sessions.reduce((sum, session) => sum + session.stats.total_candidates, 0);
+  const activeEditorSession = selectedSession ?? null;
 
   if (loading) {
     return (
@@ -356,12 +503,23 @@ export function SeatAllocationPage() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-lg card-border bg-white p-5">
+      <CreateSeatSessionDialog
+        open={createDialogOpen}
+        sourceMode={createSourceMode}
+        title={createTitle}
+        creating={creatingSession}
+        onOpenChange={handleCreateDialogChange}
+        onSourceModeChange={handleCreateSourceModeChange}
+        onTitleChange={setCreateTitle}
+        onCreate={handleCreateSession}
+      />
+
+      <div className="rounded-2xl card-border bg-white p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-neutral-900">Seat Allocation</h1>
-            <p className="text-sm text-neutral-600">
-              Build a draft from real students or PRN uploads, auto-fill seats, make edits, then publish one live session.
+            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Seat Allocation</h1>
+            <p className="mt-1 text-sm text-neutral-600">
+              Build named drafts, fill seats across labs, export lab-wise or full lists, and publish one live session for students.
             </p>
           </div>
 
@@ -370,177 +528,202 @@ export function SeatAllocationPage() {
               <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
               Refresh
             </Button>
-            <Button onClick={() => void handleCreateSession()} disabled={creatingSession}>
-              {creatingSession ? "Creating..." : `New ${sourceMode === "direct" ? "Direct" : "Upload"} Draft`}
-            </Button>
+            {viewMode === "editor" ? (
+              <Button variant="outline" onClick={handleBackToGallery}>
+                <ArrowLeft className="h-4 w-4" />
+                Back to Gallery
+              </Button>
+            ) : null}
+            <Button onClick={() => setCreateDialogOpen(true)}>Create Allocation</Button>
           </div>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-4">
-          <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Labs</p>
-            <p className="font-semibold text-neutral-900">{labs.length}</p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Sessions</p>
+            <p className="mt-2 text-xl font-semibold text-neutral-900">{sessions.length}</p>
           </div>
-          <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Sessions</p>
-            <p className="font-semibold text-neutral-900">{sessions.length}</p>
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Published</p>
+            <p className="mt-2 text-xl font-semibold text-neutral-900">{totalPublished}</p>
           </div>
-          <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Students</p>
-            <p className="font-semibold text-neutral-900">{students.length}</p>
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Ready Drafts</p>
+            <p className="mt-2 text-xl font-semibold text-neutral-900">{readyDrafts}</p>
           </div>
-          <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Published</p>
-            <p className="font-semibold text-neutral-900">{totalPublished}</p>
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Candidates</p>
+            <p className="mt-2 text-xl font-semibold text-neutral-900">{totalCandidates}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <LabsManager
-          labs={labs}
-          busy={labsBusy}
-          onCreate={handleLabCreate}
-          onUpdate={handleLabUpdate}
-          onDelete={handleLabDelete}
+      {viewMode === "gallery" ? (
+        <SeatSessionGallery
+          sessions={sessions}
+          selectedSessionId={selectedSessionId}
+          onCreateAllocation={() => setCreateDialogOpen(true)}
+          onOpenDraft={(sessionId) => handleOpenSession(sessionId, "studio")}
+          onPreview={(sessionId) => handleOpenSession(sessionId, "preview")}
+          onExport={(sessionId) => handleOpenSession(sessionId, "preview")}
+          onCreateRevision={(sessionId) => {
+            void handleCreateRevision(sessionId);
+          }}
+          onDeleteDraft={(sessionId) => {
+            void handleDeleteDraft(sessionId);
+          }}
         />
-
-        <section className="rounded-lg card-border bg-white p-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold text-neutral-900">Draft Source</h3>
-              <p className="text-sm text-neutral-600">Choose how this draft will receive students.</p>
+      ) : activeEditorSession ? (
+        <div className="space-y-6">
+          <section className="rounded-2xl card-border bg-white p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={activeEditorSession.is_published ? "info" : "outline"}>
+                    {activeEditorSession.is_published ? "Published" : activeEditorSession.status === "ready" ? "Ready Draft" : "Draft"}
+                  </Badge>
+                  <Badge variant="outline" className="capitalize">
+                    {activeEditorSession.source_mode}
+                  </Badge>
+                  <Badge variant="outline">Created {formatDateTime(activeEditorSession.created_at)}</Badge>
+                </div>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Input
+                    value={titleDraft}
+                    onChange={(event) => setTitleDraft(event.target.value)}
+                    disabled={activeEditorSession.is_published || savingTitle}
+                    className="h-11 max-w-2xl text-base font-semibold"
+                    placeholder="Allocation title"
+                  />
+                  {activeEditorSession.is_published ? (
+                    <Button variant="outline" onClick={() => void handleCreateRevision(activeEditorSession.id)}>
+                      Create Revision
+                    </Button>
+                  ) : (
+                    <Button variant="outline" onClick={() => void handleSaveTitle()} disabled={savingTitle || titleDraft.trim() === activeEditorSession.title}>
+                      {savingTitle ? "Saving..." : "Save Title"}
+                    </Button>
+                  )}
+                </div>
+                <p className="mt-3 text-sm text-neutral-600">
+                  {activeEditorSession.is_published
+                    ? "Published sessions stay frozen for students. Create a revision draft to make changes while keeping this live version intact."
+                    : activeEditorSession.source_mode === "direct"
+                      ? "This direct draft pulls candidates from the real student database and stays fully editable until you publish."
+                      : "This upload draft matches candidates by Enrollment No and stays editable until every unmatched, duplicate, and overflow row is resolved."}
+                </p>
+              </div>
             </div>
-            {selectedSession ? (
-              <Badge variant="outline">Selected {selectedSession.id.slice(0, 8)}</Badge>
-            ) : (
-              <Badge variant="outline">No session selected</Badge>
-            )}
+          </section>
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="space-y-6">
+              <LabsManager
+                labs={labs}
+                busy={labsBusy}
+                onCreate={handleLabCreate}
+                onUpdate={handleLabUpdate}
+                onDelete={handleLabDelete}
+              />
+
+              {activeEditorSession.source_mode === "direct" ? (
+                <DirectSelectionPanel
+                  session={activeEditorSession}
+                  students={students}
+                  candidates={candidates}
+                  onAddStudents={handleDirectAdd}
+                  onAdded={handleDirectAdded}
+                />
+              ) : (
+                <StudentUploadPanel
+                  session={activeEditorSession}
+                  onImportRows={handleImportRows}
+                  onImported={handleImported}
+                  onDownloadTemplate={downloadSeatTemplate}
+                />
+              )}
+
+              <StudentMatchPanel
+                session={activeEditorSession}
+                candidates={candidates}
+                students={students}
+                busyCandidateId={candidateBusyId}
+                onResolve={handleResolveCandidate}
+                onRemove={handleRemoveCandidate}
+              />
+
+              <AllocationControls
+                session={activeEditorSession}
+                labs={labs}
+                details={sessionDetails}
+                loading={allocating}
+                onAllocate={handleAllocate}
+                onAllocated={handleAllocated}
+              />
+
+              <SeatAssignmentsPanel
+                session={activeEditorSession}
+                labs={labs}
+                rows={assignmentRows}
+                savingStudentId={assignmentBusyId}
+                onSaveAssignment={handleSaveAssignment}
+                onRemoveAssignment={handleRemoveAssignment}
+              />
+
+              <div ref={previewRef}>
+                <SeatDocumentPreviewPanel
+                  session={activeEditorSession}
+                  assignedCount={sessionDetails?.stats.assigned_candidates ?? 0}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+              <SeatStudioSidebar
+                details={sessionDetails}
+                publishing={publishing}
+                onPublish={handlePublish}
+                onOpenPreview={() => setEditorIntent("preview")}
+              />
+
+              {sessionDetails ? (
+                <section className="rounded-2xl card-border bg-white p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-neutral-900">Lab occupancy</h3>
+                      <p className="mt-1 text-sm text-neutral-600">Live distribution for the current session.</p>
+                    </div>
+                    <Badge variant="outline">{sessionDetails.lab_summary.length} labs</Badge>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {sessionDetails.lab_summary.length === 0 ? (
+                      <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-4 text-sm text-neutral-600">
+                        No assignments yet. Run auto allocation or edit seats manually to populate lab occupancy.
+                      </div>
+                    ) : (
+                      sessionDetails.lab_summary.map((summary) => (
+                        <div key={summary.lab_id} className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-neutral-900">{summary.lab_name}</p>
+                              <p className="text-xs text-neutral-500">{summary.total_seats} total seats</p>
+                            </div>
+                            <Badge variant="outline">{summary.allocated_count} filled</Badge>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+              ) : null}
+            </div>
           </div>
-
-          <Tabs value={sourceMode} onValueChange={(value) => setSourceMode(value as SeatSourceMode)}>
-            <TabsList className="grid w-full grid-cols-2 bg-neutral-100 p-1">
-              <TabsTrigger value="direct" className="h-10" activeIndicatorClassName="bg-white shadow-sm">
-                Select Students
-              </TabsTrigger>
-              <TabsTrigger value="upload" className="h-10" activeIndicatorClassName="bg-white shadow-sm">
-                Upload File
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
-            {sourceScopedSession ? (
-              <p>
-                Working in <span className="font-semibold text-neutral-900">{sourceScopedSession.source_mode}</span> draft <span className="font-semibold text-neutral-900">{sourceScopedSession.id.slice(0, 8)}</span>.
-              </p>
-            ) : (
-              <p>Create a new {sourceMode} draft, or open an existing one from the session list below.</p>
-            )}
-          </div>
-        </section>
-      </div>
-
-      <div className="rounded-lg card-border bg-white p-5 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-neutral-900">Seat Sessions</h2>
-          <Badge variant="outline">Latest {sessions.length}</Badge>
         </div>
-
-        {sessions.length === 0 ? (
-          <p className="text-sm text-neutral-600">No seat sessions yet. Create a direct or upload draft to begin.</p>
-        ) : (
-          <div className="overflow-hidden rounded-md border border-neutral-200">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
-                <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Session</th>
-                  <th className="px-3 py-2 text-left font-semibold">Created</th>
-                  <th className="px-3 py-2 text-left font-semibold">Source</th>
-                  <th className="px-3 py-2 text-left font-semibold">Status</th>
-                  <th className="px-3 py-2 text-right font-semibold">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200 bg-white">
-                {sessions.map((session) => {
-                  const selected = session.id === selectedSessionId;
-                  return (
-                    <tr key={session.id} className={selected ? "bg-blue-50/70" : ""}>
-                      <td className="px-3 py-2.5 font-medium text-neutral-900">{session.id.slice(0, 8)}</td>
-                      <td className="px-3 py-2.5 text-neutral-700">{formatDateTime(session.created_at)}</td>
-                      <td className="px-3 py-2.5 text-neutral-700 capitalize">{session.source_mode}</td>
-                      <td className="px-3 py-2.5">
-                        <Badge variant={session.is_published ? "info" : "outline"}>
-                          {session.is_published ? "Published" : session.status}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
-                        <Button
-                          size="sm"
-                          variant={selected ? "default" : "outline"}
-                          onClick={() => {
-                            setSelectedSessionId(session.id);
-                            setSourceMode(session.source_mode);
-                          }}
-                        >
-                          {selected ? "Selected" : "Open"}
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {sourceMode === "direct" ? (
-        <DirectSelectionPanel
-          session={sourceScopedSession}
-          students={students}
-          candidates={candidates}
-          onAddStudents={handleDirectAdd}
-          onAdded={handleDirectAdded}
-        />
       ) : (
-        <StudentUploadPanel
-          session={sourceScopedSession}
-          onImportRows={handleImportRows}
-          onImported={handleImported}
-          onDownloadTemplate={downloadSeatTemplate}
-        />
+        <div className="rounded-2xl card-border bg-white p-8 text-sm text-neutral-600">
+          Select a seat session from the gallery or create a new allocation to continue.
+        </div>
       )}
-
-      <AllocationControls
-        session={selectedSession}
-        labs={labs}
-        details={sessionDetails}
-        loading={allocating}
-        onAllocate={handleAllocate}
-        onAllocated={handleAllocated}
-      />
-
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <StudentMatchPanel
-          session={selectedSession}
-          candidates={candidates}
-          students={students}
-          busyCandidateId={candidateBusyId}
-          onResolve={handleResolveCandidate}
-          onRemove={handleRemoveCandidate}
-        />
-        <AllocationSummary details={sessionDetails} publishing={publishing} onPublish={handlePublish} />
-      </div>
-
-      <SeatAssignmentsPanel
-        session={selectedSession}
-        labs={labs}
-        rows={assignmentRows}
-        savingStudentId={assignmentBusyId}
-        onSaveAssignment={handleSaveAssignment}
-        onRemoveAssignment={handleRemoveAssignment}
-      />
     </section>
   );
 }

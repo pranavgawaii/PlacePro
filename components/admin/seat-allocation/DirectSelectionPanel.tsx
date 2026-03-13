@@ -130,7 +130,7 @@ export function DirectSelectionPanel({
         </div>
         {editableDirectSession ? (
           <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-            Direct draft {editableDirectSession.id.slice(0, 8)}
+            Direct draft ready
           </Badge>
         ) : (
           <Badge variant="outline">Direct draft required</Badge>
@@ -148,7 +148,7 @@ export function DirectSelectionPanel({
               id="seat-direct-search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by name, PRN, or email"
+              placeholder="Search by name, Enrollment No, or email"
               className="pl-9"
               disabled={loading || submitting}
             />
@@ -215,7 +215,7 @@ export function DirectSelectionPanel({
             <tr>
               <th className="w-12 px-3 py-2 text-left font-semibold">Pick</th>
               <th className="px-3 py-2 text-left font-semibold">Student</th>
-              <th className="px-3 py-2 text-left font-semibold">PRN</th>
+              <th className="px-3 py-2 text-left font-semibold">Enrollment No</th>
               <th className="px-3 py-2 text-left font-semibold">Academic</th>
               <th className="px-3 py-2 text-left font-semibold">Status</th>
             </tr>
@@ -244,7 +244,7 @@ export function DirectSelectionPanel({
                       <p className="font-medium text-neutral-900">{student.name}</p>
                       <p className="text-xs text-neutral-500">{student.email}</p>
                     </td>
-                    <td className="px-3 py-2.5 align-top font-medium text-neutral-900">{student.prn ?? "PRN pending"}</td>
+                    <td className="px-3 py-2.5 align-top font-medium text-neutral-900">{student.prn ?? "Enrollment pending"}</td>
                     <td className="px-3 py-2.5 align-top text-neutral-600">
                       {student.branch ?? "—"} • Batch {student.batch_year}
                     </td>

@@ -120,23 +120,50 @@ export function StudentDashboardPageSimple() {
                 </div>
 
                 {publishedSeat ? (
-                    <div className="bg-white rounded-xl card-border p-6 flex flex-col justify-between relative overflow-hidden">
-                        <div>
-                            <h3 className="text-neutral-500 text-xs font-bold uppercase tracking-wider">Allocated Seat</h3>
-                            <p className="mt-2 text-2xl font-bold tracking-tight text-neutral-900">
-                                {publishedSeat.seat_number}
-                            </p>
-                            <p className="text-sm text-neutral-600 mt-1">{publishedSeat.lab_name}</p>
-                        </div>
-                        <div className="mt-5 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
-                            <p className="text-xs font-semibold text-blue-700">
-                                Published {publishedSeat.published_at
-                                    ? new Date(publishedSeat.published_at).toLocaleString()
-                                    : new Date(publishedSeat.created_at).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-blue-700/90 mt-1">
-                                Session {publishedSeat.session_id.slice(0, 8)}
-                            </p>
+                    <div className="relative overflow-hidden rounded-2xl card-border bg-white p-6">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-blue-600" />
+                        <div className="absolute -right-12 top-8 h-28 w-28 rounded-full bg-blue-100/70 blur-2xl" />
+                        <div className="absolute -left-10 bottom-0 h-24 w-24 rounded-full bg-neutral-100 blur-2xl" />
+
+                        <div className="relative flex h-full flex-col justify-between gap-5">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                                            Allocated Seat
+                                        </p>
+                                        <h3 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">
+                                            {publishedSeat.seat_number}
+                                        </h3>
+                                    </div>
+                                    <div className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                                        Final allocation
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Lab</p>
+                                    <p className="mt-2 text-base font-semibold text-neutral-900">{publishedSeat.lab_name}</p>
+                                    <p className="mt-1 text-xs text-neutral-500">
+                                        {publishedSeat.session_title || `Session ${publishedSeat.session_id.slice(0, 8)}`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Published</p>
+                                    <p className="mt-2 text-sm font-semibold text-neutral-900">
+                                        {publishedSeat.published_at
+                                            ? new Date(publishedSeat.published_at).toLocaleString()
+                                            : new Date(publishedSeat.created_at).toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Status</p>
+                                    <p className="mt-2 text-sm font-semibold text-neutral-900">Visible on your dashboard</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : null}

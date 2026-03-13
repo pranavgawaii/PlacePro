@@ -532,6 +532,7 @@ export interface Database {
         Row: {
           id: string;
           owner_id: string;
+          title: string;
           source_mode: "direct" | "upload";
           status: "draft" | "ready" | "published";
           is_published: boolean;
@@ -542,6 +543,7 @@ export interface Database {
         Insert: {
           id?: string;
           owner_id: string;
+          title?: string;
           source_mode: "direct" | "upload";
           status?: "draft" | "ready" | "published";
           is_published?: boolean;
@@ -550,6 +552,7 @@ export interface Database {
           created_at?: string;
         };
         Update: {
+          title?: string;
           source_mode?: "direct" | "upload";
           status?: "draft" | "ready" | "published";
           is_published?: boolean;
@@ -1015,6 +1018,7 @@ export interface Database {
         Returns: {
           id: string;
           owner_id: string;
+          title: string;
           source_mode: "direct" | "upload";
           status: "draft" | "ready" | "published";
           is_published: boolean;
