@@ -1,97 +1,34 @@
-import { Database } from "@/types/database.types";
+import type { Branch, Database } from "@/types/database.types";
 
-export type AllocationMode = "alphabetical" | "random";
 export type ParseSource = "xlsx" | "csv" | "pdf";
+export type SeatSourceMode = "direct" | "upload";
+export type SeatSessionStatus = "draft" | "ready" | "published";
+export type CandidateMatchStatus = "matched" | "unmatched" | "duplicate" | "overflow" | "removed";
 
 export type Lab = Database["public"]["Tables"]["labs"]["Row"];
-export type StudentTemp = Database["public"]["Tables"]["students_temp"]["Row"];
-export type AllocationSession = Database["public"]["Tables"]["allocation_sessions"]["Row"];
-export type AllocationRow = Database["public"]["Tables"]["allocations"]["Row"];
+export type SeatSession = Database["public"]["Tables"]["seat_sessions"]["Row"];
+export type SeatSessionCandidate = Database["public"]["Tables"]["seat_session_candidates"]["Row"];
+export type SeatAssignment = Database["public"]["Tables"]["seat_assignments"]["Row"];
 export type StudentRow = Database["public"]["Tables"]["students"]["Row"];
 
-export interface ParsedRow {
-  id?: string;
-  row_index?: number;
-  name: string;
-  roll_number: string;
-  department?: string;
+export interface SeatUploadRow {
+  row_index: number;
+  prn: string;
+  name?: string;
+  branch?: string;
   raw_row?: Record<string, unknown>;
 }
 
-export interface InvalidParsedRow {
+export interface SeatUploadInvalidRow {
   row_index: number;
   reason: string;
   raw_row: Record<string, unknown>;
 }
 
-export interface ParseStudentsResult {
-  upload_session_id: string;
-  parsed_count: number;
-  duplicate_rolls: string[];
-  invalid_rows: InvalidParsedRow[];
-}
-
-export interface SeatSummaryItem {
-  lab_id: string;
-  lab_name: string;
-  allocated_count: number;
-  total_seats: number;
-}
-
-export interface OverflowStudent {
-  student_id: string;
-  name: string;
-  roll_number: string;
-}
-
-export interface SeatAllocationResult {
-  session_id: string;
-  mode: AllocationMode;
-  upload_session_id: string;
-  seat_summary: SeatSummaryItem[];
-  overflow_students: OverflowStudent[];
-}
-
-export interface SessionAllocationDetails {
-  session: AllocationSession;
-  seat_summary: SeatSummaryItem[];
-  overflow_students: OverflowStudent[];
-}
-
-export interface SessionMappingRow {
-  allocation_id: string;
-  seat_number: string;
-  lab_name: string;
-  temp_student_id: string;
-  temp_name: string;
-  temp_roll_number: string;
-  temp_department: string | null;
-  matched_student_id: string | null;
-  matched_student_name: string | null;
-  matched_student_prn: string | null;
-  matched_student_email: string | null;
-}
-
-export interface StudentMappingOption {
-  id: string;
-  name: string;
-  prn: string | null;
-  email: string;
-  branch: Database["public"]["Tables"]["students"]["Row"]["branch"];
-}
-
-export interface PublishedSeatAssignment {
-  session_id: string;
-  seat_number: string;
-  lab_name: string;
-  published_at: string | null;
-  created_at: string;
-}
-
-export interface HeaderMapping {
+export interface CandidateHeaderMapping {
+  prnKey: string | null;
   nameKey: string | null;
-  rollKey: string | null;
-  departmentKey: string | null;
+  branchKey: string | null;
 }
 
 export interface SpreadsheetTableCandidate {
@@ -102,4 +39,104 @@ export interface SpreadsheetTableCandidate {
   row_count: number;
   headers: string[];
   rows: Record<string, unknown>[];
+}
+
+export interface SeatUploadParsePreview {
+  parsedRows: SeatUploadRow[];
+  invalidRows: SeatUploadInvalidRow[];
+}
+
+export interface ImportSeatCandidatesResult {
+  inserted_count: number;
+  matched_count: number;
+  unmatched_count: number;
+  duplicate_count: number;
+}
+
+export interface AddDirectCandidatesResult {
+  added_count: number;
+  skipped_count: number;
+}
+
+export interface SeatStudentOption {
+  id: string;
+  name: string;
+  email: string;
+  prn: string | null;
+  branch: Branch | null;
+  batch_year: number;
+}
+
+export interface SeatSessionListItem {
+  id: string;
+  source_mode: SeatSourceMode;
+  status: SeatSessionStatus;
+  is_published: boolean;
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface SeatSessionCandidateView {
+  id: string;
+  session_id: string;
+  student_id: string | null;
+  prn: string;
+  name_snapshot: string | null;
+  branch_snapshot: string | null;
+  source_mode: SeatSourceMode;
+  source_row_no: number | null;
+  match_status: CandidateMatchStatus;
+  error_message: string | null;
+  student_name: string | null;
+  student_email: string | null;
+  student_branch: Branch | null;
+}
+
+export interface SeatAssignmentEditorRow {
+  candidate_id: string;
+  student_id: string;
+  student_name: string;
+  prn: string;
+  branch: string | null;
+  lab_id: string | null;
+  seat_number: string | null;
+}
+
+export interface SeatSummaryItem {
+  lab_id: string;
+  lab_name: string;
+  allocated_count: number;
+  total_seats: number;
+}
+
+export interface SeatSessionStats {
+  total_candidates: number;
+  matched_candidates: number;
+  unmatched_candidates: number;
+  duplicate_candidates: number;
+  overflow_candidates: number;
+  removed_candidates: number;
+  assigned_candidates: number;
+  unassigned_matched_candidates: number;
+}
+
+export interface SeatSessionDetails {
+  session: SeatSession;
+  stats: SeatSessionStats;
+  lab_summary: SeatSummaryItem[];
+}
+
+export interface AutoAllocateSeatsResult {
+  session_id: string;
+  assigned_count: number;
+  overflow_count: number;
+  seat_summary: SeatSummaryItem[];
+}
+
+export interface PublishedSeatAssignment {
+  session_id: string;
+  seat_number: string;
+  lab_name: string;
+  published_at: string | null;
+  created_at: string;
 }

@@ -1,11 +1,25 @@
 import * as XLSX from "xlsx";
 import type {
-  HeaderMapping,
-  InvalidParsedRow,
-  ParsedRow,
+  CandidateHeaderMapping,
+  SeatUploadInvalidRow,
+  SeatUploadParsePreview,
+  SeatUploadRow,
   SpreadsheetTableCandidate
 } from "@/lib/seat-allocation/types";
 
+const PRN_HEADERS = [
+  "prn",
+  "roll no",
+  "roll number",
+  "roll",
+  "enrollment no",
+  "enrollment number",
+  "enrolment no",
+  "enrolment number",
+  "registration no",
+  "registration number",
+  "student id"
+];
 const NAME_HEADERS = [
   "name",
   "student name",
@@ -15,24 +29,12 @@ const NAME_HEADERS = [
   "candidate name",
   "student"
 ];
-const ROLL_HEADERS = [
-  "roll no",
-  "roll number",
-  "roll",
-  "id",
-  "student id",
-  "enrollment no",
-  "enrollment number",
-  "enrolment no",
-  "enrolment number",
-  "registration no",
-  "reg no",
-  "prn"
-];
-const DEPARTMENT_HEADERS = ["department", "dept", "branch", "program", "programme", "class"];
+const BRANCH_HEADERS = ["branch", "department", "dept", "programme", "program", "class"];
 
 const normalizeCell = (value: unknown) =>
   typeof value === "string" ? value.trim() : String(value ?? "").trim();
+
+const normalizePrn = (value: unknown) => normalizeCell(value).toUpperCase();
 
 const normalizeHeaderToken = (value: string) =>
   value
@@ -55,79 +57,71 @@ export const extractRowHeaders = (rows: Record<string, unknown>[]): string[] =>
     }, new Set<string>())
   );
 
-export const detectHeaderMapping = (headers: string[]): HeaderMapping => ({
+export const detectHeaderMapping = (headers: string[]): CandidateHeaderMapping => ({
+  prnKey: findHeaderKey(headers, PRN_HEADERS),
   nameKey: findHeaderKey(headers, NAME_HEADERS),
-  rollKey: findHeaderKey(headers, ROLL_HEADERS),
-  departmentKey: findHeaderKey(headers, DEPARTMENT_HEADERS)
+  branchKey: findHeaderKey(headers, BRANCH_HEADERS)
 });
-
-export const normalizeParsedRows = (rows: Record<string, unknown>[]) => {
-  return normalizeParsedRowsWithMapping(rows, detectHeaderMapping(extractRowHeaders(rows)));
-};
 
 export const normalizeParsedRowsWithMapping = (
   rows: Record<string, unknown>[],
-  mapping: HeaderMapping
-): {
-  parsedRows: ParsedRow[];
-  invalidRows: InvalidParsedRow[];
-} => {
+  mapping: CandidateHeaderMapping
+): SeatUploadParsePreview => {
   if (rows.length === 0) {
     return { parsedRows: [], invalidRows: [] };
   }
 
-  const { nameKey, rollKey, departmentKey } = mapping;
+  const { prnKey, nameKey, branchKey } = mapping;
 
-  if (!nameKey || !rollKey) {
+  if (!prnKey) {
     return {
       parsedRows: [],
       invalidRows: rows.map((row, index) => ({
         row_index: index + 1,
-        reason: "Missing required mapped columns (Name and Roll Number).",
+        reason: "Missing required mapped column (PRN).",
         raw_row: row
       }))
     };
   }
 
-  const parsedRows: ParsedRow[] = [];
-  const invalidRows: InvalidParsedRow[] = [];
-  const localDuplicateTracker = new Set<string>();
+  const parsedRows: SeatUploadRow[] = [];
+  const invalidRows: SeatUploadInvalidRow[] = [];
+  const duplicateTracker = new Set<string>();
 
   rows.forEach((row, index) => {
-    const name = normalizeCell(row[nameKey]);
-    const roll_number = normalizeCell(row[rollKey]);
-    const department = departmentKey ? normalizeCell(row[departmentKey]) : "";
-
+    const prn = normalizePrn(row[prnKey]);
+    const name = nameKey ? normalizeCell(row[nameKey]) : "";
+    const branch = branchKey ? normalizeCell(row[branchKey]) : "";
     const isBlank = Object.values(row).every((value) => normalizeCell(value) === "");
+
     if (isBlank) {
       return;
     }
 
-    if (!name || !roll_number) {
+    if (!prn) {
       invalidRows.push({
         row_index: index + 1,
-        reason: "Missing required field values.",
+        reason: "Missing PRN value.",
         raw_row: row
       });
       return;
     }
 
-    const duplicateKey = roll_number.toLowerCase();
-    if (localDuplicateTracker.has(duplicateKey)) {
+    if (duplicateTracker.has(prn)) {
       invalidRows.push({
         row_index: index + 1,
-        reason: `Duplicate roll number in file: ${roll_number}`,
+        reason: `Duplicate PRN in file: ${prn}`,
         raw_row: row
       });
       return;
     }
 
-    localDuplicateTracker.add(duplicateKey);
+    duplicateTracker.add(prn);
     parsedRows.push({
       row_index: index + 1,
-      name,
-      roll_number,
-      department: department || undefined,
+      prn,
+      name: name || undefined,
+      branch: branch || undefined,
       raw_row: row
     });
   });
@@ -185,20 +179,20 @@ export const parsePdfRows = async (file: File): Promise<Record<string, unknown>[
       .map((value) => value.trim())
       .filter(Boolean);
 
-    if (tokens.length < 2) {
+    if (tokens.length === 0) {
       continue;
     }
 
-    const rollCandidate = tokens[0];
+    const prnCandidate = normalizePrn(tokens[0]);
     const nameCandidate = tokens.slice(1).join(" ");
 
-    if (!rollCandidate || !nameCandidate) {
+    if (!prnCandidate) {
       continue;
     }
 
     rows.push({
-      "Roll Number": rollCandidate,
-      "Student Name": nameCandidate
+      PRN: prnCandidate,
+      Name: nameCandidate
     });
   }
 
@@ -228,10 +222,9 @@ const findHeaderRowIndex = (matrix: unknown[][]): number => {
   for (let rowIndex = 0; rowIndex < limit; rowIndex += 1) {
     const row = matrix[rowIndex] ?? [];
     const cells = row.map((cell) => normalizeCell(cell));
-    const hasName = cells.some((cell) => hasAlias(cell, NAME_HEADERS));
-    const hasRoll = cells.some((cell) => hasAlias(cell, ROLL_HEADERS));
+    const hasPrn = cells.some((cell) => hasAlias(cell, PRN_HEADERS));
 
-    if (hasName && hasRoll) {
+    if (hasPrn) {
       return rowIndex;
     }
   }
@@ -278,13 +271,13 @@ const detectHeaderInsideBlock = (block: unknown[][]): number => {
 
   for (let index = 0; index < maxScan; index += 1) {
     const cells = (block[index] ?? []).map((cell) => normalizeCell(cell)).filter(Boolean);
-    if (cells.length < 2) {
+    if (cells.length < 1) {
       continue;
     }
 
+    const hasPrn = cells.some((cell) => hasAlias(cell, PRN_HEADERS));
     const hasName = cells.some((cell) => hasAlias(cell, NAME_HEADERS));
-    const hasRoll = cells.some((cell) => hasAlias(cell, ROLL_HEADERS));
-    const score = cells.length + (hasName ? 3 : 0) + (hasRoll ? 3 : 0);
+    const score = cells.length + (hasPrn ? 4 : 0) + (hasName ? 1 : 0);
 
     if (score > bestScore) {
       bestScore = score;
@@ -330,7 +323,7 @@ const parseWorksheetTables = (sheet: XLSX.WorkSheet, sheetName: string): Spreads
 
   blocks.forEach((block, blockIndex) => {
     const blockRows = matrix.slice(block.start, block.end + 1);
-    if (blockRows.length < 2) {
+    if (blockRows.length < 1) {
       return;
     }
 
@@ -345,7 +338,7 @@ const parseWorksheetTables = (sheet: XLSX.WorkSheet, sheetName: string): Spreads
     const rows = buildRowsFromHeader(matrix, headerRowIndex, dataStart, block.end);
     const headers = extractRowHeaders(rows);
 
-    if (rows.length === 0 || headers.length < 2) {
+    if (rows.length === 0 || headers.length < 1) {
       return;
     }
 

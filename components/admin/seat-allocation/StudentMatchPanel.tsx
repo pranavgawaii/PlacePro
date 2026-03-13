@@ -1,62 +1,74 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCheck, Search } from "lucide-react";
+import { Search, Trash2, UserCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
-  AllocationSession,
-  SessionMappingRow,
-  StudentMappingOption
+  CandidateMatchStatus,
+  SeatSession,
+  SeatSessionCandidateView,
+  SeatStudentOption
 } from "@/lib/seat-allocation/types";
 
 interface StudentMatchPanelProps {
-  session: AllocationSession | null;
-  rows: SessionMappingRow[];
-  students: StudentMappingOption[];
-  mappingThreshold?: number;
-  savingRowId?: string | null;
-  publishing?: boolean;
-  onMap: (allocationId: string, matchedStudentId: string | null) => Promise<void>;
-  onPublish: () => Promise<void>;
+  session: SeatSession | null;
+  candidates: SeatSessionCandidateView[];
+  students: SeatStudentOption[];
+  busyCandidateId?: string | null;
+  onResolve: (params: { candidateId: string; studentId: string }) => Promise<void>;
+  onRemove: (candidateId: string) => Promise<void>;
 }
+
+const statusLabel: Record<CandidateMatchStatus, string> = {
+  matched: "Matched",
+  unmatched: "Unmatched",
+  duplicate: "Duplicate",
+  overflow: "Overflow",
+  removed: "Removed"
+};
 
 export function StudentMatchPanel({
   session,
-  rows,
+  candidates,
   students,
-  mappingThreshold = 1,
-  savingRowId,
-  publishing,
-  onMap,
-  onPublish
+  busyCandidateId,
+  onResolve,
+  onRemove
 }: StudentMatchPanelProps) {
-  const [rowQuery, setRowQuery] = useState("");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | CandidateMatchStatus>("all");
   const [studentQuery, setStudentQuery] = useState("");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const normalizedRowQuery = rowQuery.trim().toLowerCase();
+  const editableSession = session && !session.is_published ? session : null;
+  const normalizedQuery = query.trim().toLowerCase();
   const normalizedStudentQuery = studentQuery.trim().toLowerCase();
 
-  const filteredRows = useMemo(() => {
-    if (!normalizedRowQuery) {
-      return rows;
-    }
+  const filteredCandidates = useMemo(() => {
+    return candidates.filter((candidate) => {
+      if (statusFilter !== "all" && candidate.match_status !== statusFilter) {
+        return false;
+      }
 
-    return rows.filter((row) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+
       return (
-        row.lab_name.toLowerCase().includes(normalizedRowQuery) ||
-        row.seat_number.toLowerCase().includes(normalizedRowQuery) ||
-        row.temp_name.toLowerCase().includes(normalizedRowQuery) ||
-        row.temp_roll_number.toLowerCase().includes(normalizedRowQuery) ||
-        (row.matched_student_name ?? "").toLowerCase().includes(normalizedRowQuery) ||
-        (row.matched_student_prn ?? "").toLowerCase().includes(normalizedRowQuery)
+        candidate.prn.toLowerCase().includes(normalizedQuery) ||
+        (candidate.name_snapshot ?? "").toLowerCase().includes(normalizedQuery) ||
+        (candidate.student_name ?? "").toLowerCase().includes(normalizedQuery) ||
+        (candidate.error_message ?? "").toLowerCase().includes(normalizedQuery)
       );
     });
-  }, [rows, normalizedRowQuery]);
+  }, [candidates, normalizedQuery, statusFilter]);
 
   const filteredStudents = useMemo(() => {
     if (!normalizedStudentQuery) {
-      return students.slice(0, 300);
+      return students.slice(0, 250);
     }
 
     return students
@@ -67,173 +79,179 @@ export function StudentMatchPanel({
           (student.prn ?? "").toLowerCase().includes(normalizedStudentQuery)
         );
       })
-      .slice(0, 300);
-  }, [students, normalizedStudentQuery]);
+      .slice(0, 250);
+  }, [normalizedStudentQuery, students]);
 
-  const studentById = useMemo(() => {
-    return new Map(students.map((student) => [student.id, student]));
-  }, [students]);
-
-  const filteredStudentIds = useMemo(() => {
-    return new Set(filteredStudents.map((student) => student.id));
-  }, [filteredStudents]);
-
-  const mappedCount = rows.filter((row) => Boolean(row.matched_student_id)).length;
-  const totalCount = rows.length;
-  const mappingRatio = totalCount === 0 ? 0 : mappedCount / totalCount;
-  const hasCompleteMapping = totalCount > 0 && rows.every((row) => Boolean(row.matched_student_id));
-  const canPublish = hasCompleteMapping && mappingRatio >= mappingThreshold;
-
-  const getStudentOptions = (matchedStudentId: string | null): StudentMappingOption[] => {
-    if (!matchedStudentId || filteredStudentIds.has(matchedStudentId)) {
-      return filteredStudents;
+  const handleResolve = async (candidateId: string) => {
+    if (!editableSession) {
+      setError("Open an editable seat session to resolve unmatched rows.");
+      return;
     }
 
-    const mappedStudent = studentById.get(matchedStudentId);
-    if (!mappedStudent) {
-      return filteredStudents;
+    const studentId = selectedStudentIds[candidateId];
+    if (!studentId) {
+      setError("Choose a student before resolving this row.");
+      return;
     }
 
-    return [mappedStudent, ...filteredStudents];
+    setError(null);
+
+    try {
+      await onResolve({ candidateId, studentId });
+    } catch (resolveError) {
+      const nextError = resolveError instanceof Error ? resolveError.message : "Unable to resolve candidate.";
+      setError(nextError);
+    }
+  };
+
+  const handleRemove = async (candidateId: string) => {
+    if (!editableSession) {
+      setError("Open an editable seat session to manage candidates.");
+      return;
+    }
+
+    setError(null);
+
+    try {
+      await onRemove(candidateId);
+    } catch (removeError) {
+      const nextError = removeError instanceof Error ? removeError.message : "Unable to remove candidate.";
+      setError(nextError);
+    }
   };
 
   return (
     <section className="rounded-lg card-border bg-white p-5 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Manual Student Mapping</h3>
+          <h3 className="text-lg font-semibold text-neutral-900">Candidate Review</h3>
           <p className="text-sm text-neutral-600">
-            Map each allocated temporary record to a real student profile before publish.
+            Resolve unmatched PRNs, remove duplicate rows, and clear overflow before publish.
           </p>
         </div>
-
-        <div className="text-right text-sm">
-          <p className="font-semibold text-neutral-900">
-            {mappedCount} / {totalCount} mapped
-          </p>
-          <p className="text-xs text-neutral-500">Required: {Math.round(mappingThreshold * 100)}%</p>
-        </div>
+        <Badge variant="outline">Active rows {candidates.length}</Badge>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <label htmlFor="seat-map-row-filter" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Filter allocation rows
-          </label>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-            <Input
-              id="seat-map-row-filter"
-              value={rowQuery}
-              onChange={(event) => setRowQuery(event.target.value)}
-              placeholder="Search by seat, roll, lab"
-              className="pl-9"
-            />
-          </div>
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)]">
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search PRN, name, or issue" className="pl-9" />
         </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="seat-map-student-filter" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Filter student options
-          </label>
-          <Input
-            id="seat-map-student-filter"
-            value={studentQuery}
-            onChange={(event) => setStudentQuery(event.target.value)}
-            placeholder="Search by name, email, PRN"
-          />
-        </div>
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as "all" | CandidateMatchStatus)}
+          className="h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-300"
+        >
+          <option value="all">All statuses</option>
+          <option value="matched">Matched</option>
+          <option value="unmatched">Unmatched</option>
+          <option value="duplicate">Duplicate</option>
+          <option value="overflow">Overflow</option>
+        </select>
+        <Input
+          value={studentQuery}
+          onChange={(event) => setStudentQuery(event.target.value)}
+          placeholder="Filter student options for unmatched rows"
+        />
       </div>
 
       <div className="overflow-hidden rounded-md border border-neutral-200">
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
-              <th className="px-3 py-2 text-left font-semibold">Seat</th>
-              <th className="px-3 py-2 text-left font-semibold">Temp Student</th>
-              <th className="px-3 py-2 text-left font-semibold">Map to student</th>
+              <th className="px-3 py-2 text-left font-semibold">Candidate</th>
               <th className="px-3 py-2 text-left font-semibold">Status</th>
+              <th className="px-3 py-2 text-left font-semibold">Resolve</th>
+              <th className="px-3 py-2 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 bg-white">
-            {filteredRows.length === 0 ? (
+            {filteredCandidates.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-3 py-8 text-center text-sm text-neutral-500">
-                  No matching rows found.
+                  No candidate rows match the current filters.
                 </td>
               </tr>
             ) : (
-              filteredRows.map((row) => (
-                <tr key={row.allocation_id}>
-                  <td className="px-3 py-2.5 align-top">
-                    <p className="font-semibold text-neutral-900">{row.seat_number}</p>
-                    <p className="text-xs text-neutral-500">{row.lab_name}</p>
-                  </td>
-                  <td className="px-3 py-2.5 align-top">
-                    <p className="font-medium text-neutral-900">{row.temp_name}</p>
-                    <p className="text-xs text-neutral-500">{row.temp_roll_number}</p>
-                    {row.temp_department ? (
-                      <p className="text-xs text-neutral-500">{row.temp_department}</p>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-2.5 align-top">
-                    <select
-                      value={row.matched_student_id ?? ""}
-                      className="w-full rounded-md border border-neutral-200 px-2.5 py-2 text-sm outline-none focus:border-blue-300"
-                      disabled={savingRowId === row.allocation_id || publishing || session?.is_published}
-                      onChange={(event) => {
-                        const nextValue = event.target.value || null;
-                        void onMap(row.allocation_id, nextValue);
-                      }}
-                    >
-                      <option value="">Unmapped</option>
-                      {getStudentOptions(row.matched_student_id).map((student) => (
-                        <option key={student.id} value={student.id}>
-                          {student.name} - {student.prn ?? "PRN pending"}
-                        </option>
-                      ))}
-                    </select>
-                    {row.matched_student_email ? (
-                      <p className="mt-1 text-xs text-neutral-500">{row.matched_student_email}</p>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-2.5 align-top">
-                    {row.matched_student_id ? (
-                      <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                        Mapped
-                      </span>
-                    ) : (
-                      <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                        Pending
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))
+              filteredCandidates.map((candidate) => {
+                const busy = busyCandidateId === candidate.id;
+                const canResolve = candidate.match_status === "unmatched";
+                const canRemove = true;
+
+                return (
+                  <tr key={candidate.id}>
+                    <td className="px-3 py-2.5 align-top">
+                      <p className="font-medium text-neutral-900">{candidate.name_snapshot ?? candidate.student_name ?? "Student row"}</p>
+                      <p className="text-xs text-neutral-500">{candidate.prn}</p>
+                      <p className="text-xs text-neutral-500">{candidate.branch_snapshot ?? candidate.student_branch ?? "—"}</p>
+                      {candidate.error_message ? <p className="mt-1 text-xs text-red-600">{candidate.error_message}</p> : null}
+                    </td>
+                    <td className="px-3 py-2.5 align-top">
+                      <Badge
+                        variant={candidate.match_status === "matched" ? "success" : candidate.match_status === "unmatched" ? "outline" : "secondary"}
+                        className={candidate.match_status === "overflow" ? "border-amber-200 bg-amber-50 text-amber-700" : undefined}
+                      >
+                        {statusLabel[candidate.match_status]}
+                      </Badge>
+                      {candidate.student_name ? <p className="mt-2 text-xs text-neutral-500">Linked: {candidate.student_name}</p> : null}
+                    </td>
+                    <td className="px-3 py-2.5 align-top">
+                      {canResolve ? (
+                        <div className="space-y-2">
+                          <select
+                            value={selectedStudentIds[candidate.id] ?? ""}
+                            onChange={(event) => {
+                              setSelectedStudentIds((current) => ({
+                                ...current,
+                                [candidate.id]: event.target.value
+                              }));
+                            }}
+                            className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-300"
+                            disabled={!editableSession || busy}
+                          >
+                            <option value="">Choose student</option>
+                            {filteredStudents.map((student) => (
+                              <option key={student.id} value={student.id}>
+                                {student.name} - {student.prn ?? "PRN pending"}
+                              </option>
+                            ))}
+                          </select>
+                          <Button size="sm" variant="outline" onClick={() => void handleResolve(candidate.id)} disabled={!editableSession || busy}>
+                            <UserCheck className="h-3.5 w-3.5" />
+                            Resolve
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-neutral-500">
+                          {candidate.match_status === "matched"
+                            ? "No action required."
+                            : candidate.match_status === "duplicate"
+                              ? "Remove duplicate rows before publish."
+                              : "Adjust capacity or remove the overflow row."}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 align-top text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => void handleRemove(candidate.id)}
+                        disabled={!editableSession || busy || !canRemove}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-neutral-200 bg-neutral-50 p-3">
-        <div>
-          <p className="text-sm font-medium text-neutral-900">
-            {canPublish ? "Ready to publish" : "Complete mapping to publish"}
-          </p>
-          <p className="text-xs text-neutral-500">
-            One published session is visible to students at a time.
-          </p>
-        </div>
-
-        <Button
-          onClick={() => void onPublish()}
-          disabled={!canPublish || Boolean(publishing) || !session || session.is_published}
-          className="bg-blue-600 text-white hover:bg-blue-500"
-        >
-          <CheckCheck className="h-4 w-4" />
-          {session?.is_published ? "Published" : publishing ? "Publishing..." : "Publish Session"}
-        </Button>
-      </div>
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
     </section>
   );
 }

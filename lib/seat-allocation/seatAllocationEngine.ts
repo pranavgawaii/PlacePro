@@ -1,9 +1,15 @@
-import type { AllocationMode, Lab, ParsedRow } from "@/lib/seat-allocation/types";
+import type { Lab, SeatSummaryItem } from "@/lib/seat-allocation/types";
 
 interface SeatToken {
   prefix: string;
   number: number;
   raw: string;
+}
+
+export interface AllocatableStudent {
+  student_id: string;
+  prn: string;
+  name: string;
 }
 
 const splitSeatToken = (value: string): SeatToken => {
@@ -59,42 +65,6 @@ const rowLabel = (index: number): string => {
   return label;
 };
 
-export const sortStudents = <T extends ParsedRow>(students: T[], mode: AllocationMode, seed: number): T[] => {
-  const list = [...students];
-
-  if (mode === "random") {
-    let state = seed % 2147483647;
-    if (state <= 0) {
-      state += 2147483646;
-    }
-
-    const next = () => {
-      state = (state * 16807) % 2147483647;
-      return (state - 1) / 2147483646;
-    };
-
-    for (let index = list.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(next() * (index + 1));
-      [list[index], list[swapIndex]] = [list[swapIndex], list[index]];
-    }
-
-    return list;
-  }
-
-  return list.sort((a, b) => {
-    const rollCompare = a.roll_number.localeCompare(b.roll_number, undefined, {
-      numeric: true,
-      sensitivity: "base"
-    });
-
-    if (rollCompare !== 0) {
-      return rollCompare;
-    }
-
-    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-  });
-};
-
 export const buildSeatNumbersForLab = (lab: Pick<Lab, "total_seats" | "rows" | "columns">): string[] => {
   const total = Math.max(0, lab.total_seats || 0);
   if (total === 0) {
@@ -132,22 +102,34 @@ export const buildSeatNumbersForLab = (lab: Pick<Lab, "total_seats" | "rows" | "
   return Array.from({ length: total }, (_, index) => String(index + 1));
 };
 
-export const allocateSequentially = <T extends ParsedRow>(params: {
+export const sortAllocatableStudents = <T extends AllocatableStudent>(students: T[]): T[] => {
+  return [...students].sort((left, right) => {
+    const prnCompare = (left.prn || "").localeCompare(right.prn || "", undefined, {
+      numeric: true,
+      sensitivity: "base"
+    });
+
+    if (prnCompare !== 0) {
+      return prnCompare;
+    }
+
+    return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+  });
+};
+
+export const autoAllocateSeats = <T extends AllocatableStudent>(params: {
   labs: Array<Pick<Lab, "id" | "lab_name" | "total_seats" | "rows" | "columns">>;
   students: T[];
-  mode: AllocationMode;
-  seed: number;
 }) => {
-  const sortedStudents = sortStudents(params.students, params.mode, params.seed);
+  const orderedStudents = sortAllocatableStudents(params.students);
 
-  const allocations: Array<{
+  const assignments: Array<{
+    student_id: string;
     lab_id: string;
-    lab_name: string;
     seat_number: string;
-    student: T;
   }> = [];
 
-  const seatSummary = params.labs.map((lab) => ({
+  const seatSummary: SeatSummaryItem[] = params.labs.map((lab) => ({
     lab_id: lab.id,
     lab_name: lab.lab_name,
     allocated_count: 0,
@@ -157,19 +139,18 @@ export const allocateSequentially = <T extends ParsedRow>(params: {
   let studentIndex = 0;
 
   for (const lab of params.labs) {
-    const seatNumbers = buildSeatNumbersForLab(lab);
+    const seatNumbers = buildSeatNumbersForLab(lab).sort(compareSeatNumbers);
 
     for (const seatNumber of seatNumbers) {
-      const student = sortedStudents[studentIndex];
+      const student = orderedStudents[studentIndex];
       if (!student) {
         break;
       }
 
-      allocations.push({
+      assignments.push({
+        student_id: student.student_id,
         lab_id: lab.id,
-        lab_name: lab.lab_name,
-        seat_number: seatNumber,
-        student
+        seat_number: seatNumber
       });
 
       const summaryRow = seatSummary.find((row) => row.lab_id === lab.id);
@@ -180,14 +161,14 @@ export const allocateSequentially = <T extends ParsedRow>(params: {
       studentIndex += 1;
     }
 
-    if (studentIndex >= sortedStudents.length) {
+    if (studentIndex >= orderedStudents.length) {
       break;
     }
   }
 
   return {
-    allocations,
+    assignments,
     seat_summary: seatSummary,
-    overflow_students: sortedStudents.slice(studentIndex)
+    overflow_student_ids: orderedStudents.slice(studentIndex).map((student) => student.student_id)
   };
 };

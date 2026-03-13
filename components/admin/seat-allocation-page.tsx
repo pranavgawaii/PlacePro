@@ -4,35 +4,48 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { LabsManager } from "@/components/admin/seat-allocation/LabsManager";
-import { StudentUploadPanel } from "@/components/admin/seat-allocation/StudentUploadPanel";
 import { AllocationControls } from "@/components/admin/seat-allocation/AllocationControls";
 import { AllocationSummary } from "@/components/admin/seat-allocation/AllocationSummary";
+import { DirectSelectionPanel } from "@/components/admin/seat-allocation/DirectSelectionPanel";
+import { LabsManager } from "@/components/admin/seat-allocation/LabsManager";
+import { SeatAssignmentsPanel } from "@/components/admin/seat-allocation/SeatAssignmentsPanel";
 import { StudentMatchPanel } from "@/components/admin/seat-allocation/StudentMatchPanel";
+import { StudentUploadPanel } from "@/components/admin/seat-allocation/StudentUploadPanel";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  addDirectCandidates,
+  autoAllocateSeats,
   createLab,
+  createSeatSession,
   deleteLab,
-  getAllocationSessionDetails,
-  getSessionMappingRows,
-  listAllocationSessions,
+  downloadSeatTemplate,
+  getSeatSessionDetails,
+  importSeatCandidates,
   listLabs,
   listMappableStudents,
-  listStudentsByUploadSession,
-  parseStudentsFromNormalizedRows,
-  publishAllocationSession,
-  runSeatAllocation,
-  updateAllocationMapping,
-  updateLab
+  listSeatAssignments,
+  listSeatCandidates,
+  listSeatSessions,
+  publishSeatSession,
+  removeSeatAssignment,
+  removeSeatCandidate,
+  resolveSeatCandidate,
+  updateLab,
+  updateSeatAssignment
 } from "@/lib/seat-allocation/seatApi";
 import type {
-  AllocationSession,
   Lab,
-  SeatAllocationResult,
-  SessionAllocationDetails,
-  SessionMappingRow,
-  StudentMappingOption
+  ParseSource,
+  SeatAssignmentEditorRow,
+  SeatSession,
+  SeatSessionCandidateView,
+  SeatSessionDetails,
+  SeatSessionListItem,
+  SeatSourceMode,
+  SeatStudentOption,
+  SeatUploadRow
 } from "@/lib/seat-allocation/types";
 
 const formatDateTime = (value: string): string => {
@@ -47,26 +60,27 @@ const formatDateTime = (value: string): string => {
 export function SeatAllocationPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [creatingSession, setCreatingSession] = useState(false);
 
   const [labs, setLabs] = useState<Lab[]>([]);
-  const [sessions, setSessions] = useState<AllocationSession[]>([]);
-  const [students, setStudents] = useState<StudentMappingOption[]>([]);
+  const [sessions, setSessions] = useState<SeatSessionListItem[]>([]);
+  const [students, setStudents] = useState<SeatStudentOption[]>([]);
 
-  const [uploadSessionId, setUploadSessionId] = useState<string | null>(null);
-  const [uploadedStudentCount, setUploadedStudentCount] = useState(0);
-
+  const [sourceMode, setSourceMode] = useState<SeatSourceMode>("direct");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [sessionDetails, setSessionDetails] = useState<SessionAllocationDetails | null>(null);
-  const [mappingRows, setMappingRows] = useState<SessionMappingRow[]>([]);
+  const [sessionDetails, setSessionDetails] = useState<SeatSessionDetails | null>(null);
+  const [candidates, setCandidates] = useState<SeatSessionCandidateView[]>([]);
+  const [assignmentRows, setAssignmentRows] = useState<SeatAssignmentEditorRow[]>([]);
 
   const [labsBusy, setLabsBusy] = useState(false);
   const [allocating, setAllocating] = useState(false);
-  const [mappingRowSavingId, setMappingRowSavingId] = useState<string | null>(null);
+  const [candidateBusyId, setCandidateBusyId] = useState<string | null>(null);
+  const [assignmentBusyId, setAssignmentBusyId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
 
-  const selectedSession = useMemo(
-    () => sessions.find((session) => session.id === selectedSessionId) ?? null,
-    [selectedSessionId, sessions]
+  const selectedSession = useMemo<SeatSession | null>(
+    () => sessionDetails?.session ?? null,
+    [sessionDetails]
   );
 
   const refreshBaseData = useCallback(async () => {
@@ -75,19 +89,17 @@ export function SeatAllocationPage() {
     try {
       const [nextLabs, nextSessions, nextStudents] = await Promise.all([
         listLabs(),
-        listAllocationSessions(30),
+        listSeatSessions(30),
         listMappableStudents()
       ]);
 
       setLabs(nextLabs);
       setSessions(nextSessions);
       setStudents(nextStudents);
-
       setSelectedSessionId((current) => {
         if (current && nextSessions.some((session) => session.id === current)) {
           return current;
         }
-
         return nextSessions[0]?.id ?? null;
       });
     } catch (refreshError) {
@@ -101,18 +113,22 @@ export function SeatAllocationPage() {
 
   const refreshSessionData = useCallback(async (sessionId: string) => {
     try {
-      const [details, rows] = await Promise.all([
-        getAllocationSessionDetails(sessionId),
-        getSessionMappingRows(sessionId)
+      const [nextDetails, nextCandidates, nextAssignments] = await Promise.all([
+        getSeatSessionDetails(sessionId),
+        listSeatCandidates(sessionId),
+        listSeatAssignments(sessionId)
       ]);
 
-      setSessionDetails(details);
-      setMappingRows(rows);
+      setSessionDetails(nextDetails);
+      setCandidates(nextCandidates);
+      setAssignmentRows(nextAssignments);
+      setSourceMode(nextDetails.session.source_mode);
     } catch (sessionError) {
       const message = sessionError instanceof Error ? sessionError.message : "Failed to load session details.";
       toast.error(message);
       setSessionDetails(null);
-      setMappingRows([]);
+      setCandidates([]);
+      setAssignmentRows([]);
     }
   }, []);
 
@@ -123,12 +139,22 @@ export function SeatAllocationPage() {
   useEffect(() => {
     if (!selectedSessionId) {
       setSessionDetails(null);
-      setMappingRows([]);
+      setCandidates([]);
+      setAssignmentRows([]);
       return;
     }
 
     void refreshSessionData(selectedSessionId);
   }, [refreshSessionData, selectedSessionId]);
+
+  const syncAfterMutation = useCallback(async (sessionId?: string | null) => {
+    await refreshBaseData();
+    const nextId = sessionId ?? selectedSessionId;
+    if (nextId) {
+      await refreshSessionData(nextId);
+      setSelectedSessionId(nextId);
+    }
+  }, [refreshBaseData, refreshSessionData, selectedSessionId]);
 
   const handleLabCreate = async (payload: {
     lab_name: string;
@@ -137,7 +163,6 @@ export function SeatAllocationPage() {
     columns?: number | null;
   }) => {
     setLabsBusy(true);
-
     try {
       await createLab(payload);
       toast.success("Lab created.");
@@ -157,7 +182,6 @@ export function SeatAllocationPage() {
     }
   ) => {
     setLabsBusy(true);
-
     try {
       await updateLab(labId, payload);
       toast.success("Lab updated.");
@@ -169,109 +193,155 @@ export function SeatAllocationPage() {
 
   const handleLabDelete = async (labId: string) => {
     setLabsBusy(true);
-
     try {
       await deleteLab(labId);
       toast.success("Lab deleted.");
-      await refreshBaseData();
+      await syncAfterMutation();
     } finally {
       setLabsBusy(false);
     }
   };
 
-  const handleAllocationRun = async (payload: {
-    lab_ids: string[];
-    mode: "alphabetical" | "random";
-    upload_session_id: string;
-  }): Promise<SeatAllocationResult> => {
-    setAllocating(true);
-
+  const handleCreateSession = async () => {
+    setCreatingSession(true);
     try {
-      const result = await runSeatAllocation(payload);
-      toast.success("Seat allocation completed.");
-      await refreshBaseData();
-      setSelectedSessionId(result.session_id);
+      const nextSession = await createSeatSession({ sourceMode });
+      toast.success(`${sourceMode === "direct" ? "Direct" : "Upload"} draft created.`);
+      setSelectedSessionId(nextSession.id);
+      await syncAfterMutation(nextSession.id);
+    } catch (sessionError) {
+      const message = sessionError instanceof Error ? sessionError.message : "Failed to create seat session.";
+      toast.error(message);
+    } finally {
+      setCreatingSession(false);
+    }
+  };
+
+  const handleDirectAdd = async (params: { sessionId: string; studentIds: string[] }) => {
+    const result = await addDirectCandidates(params);
+    await syncAfterMutation(params.sessionId);
+    return result;
+  };
+
+  const handleDirectAdded = (result: { added_count: number; skipped_count: number }) => {
+    toast.success(`Added ${result.added_count} students to the draft.`);
+    if (result.skipped_count > 0) {
+      toast.info(`${result.skipped_count} students were skipped because they were already included or inactive.`);
+    }
+  };
+
+  const handleImportRows = async (params: {
+    sessionId: string;
+    rows: SeatUploadRow[];
+    source: ParseSource;
+  }) => {
+    const result = await importSeatCandidates(params);
+    await syncAfterMutation(params.sessionId);
+    return result;
+  };
+
+  const handleImported = (result: {
+    inserted_count: number;
+    matched_count: number;
+    unmatched_count: number;
+    duplicate_count: number;
+  }) => {
+    toast.success(`Imported ${result.inserted_count} rows into the draft.`);
+    if (result.unmatched_count > 0 || result.duplicate_count > 0) {
+      toast.info(
+        `${result.matched_count} matched, ${result.unmatched_count} unmatched, ${result.duplicate_count} duplicate.`
+      );
+    }
+  };
+
+  const handleAllocate = async (params: { sessionId: string; labIds: string[] }) => {
+    setAllocating(true);
+    try {
+      const result = await autoAllocateSeats(params);
+      await syncAfterMutation(params.sessionId);
       return result;
     } finally {
       setAllocating(false);
     }
   };
 
-  const handleAllocationCompleted = (result: SeatAllocationResult) => {
-    setSelectedSessionId(result.session_id);
-    setUploadSessionId(result.upload_session_id);
-  };
-
-  const handleUploadParsed = async (
-    result: { upload_session_id: string; parsed_count: number },
-    previewRows: { length: number }
-  ) => {
-    setUploadSessionId(result.upload_session_id);
-
-    try {
-      const uploadedRows = await listStudentsByUploadSession(result.upload_session_id);
-      setUploadedStudentCount(uploadedRows.length);
-    } catch {
-      setUploadedStudentCount(previewRows.length || result.parsed_count);
+  const handleAllocated = (result: { assigned_count: number; overflow_count: number }) => {
+    toast.success(`Allocated ${result.assigned_count} seats.`);
+    if (result.overflow_count > 0) {
+      toast.warning(`${result.overflow_count} students are in overflow and need resolution before publish.`);
     }
-
-    toast.success(`Student upload ready: ${result.parsed_count} rows validated.`);
   };
 
-  const handleMapRow = async (allocationId: string, matchedStudentId: string | null) => {
-    setMappingRowSavingId(allocationId);
-
+  const handleResolveCandidate = async (params: { candidateId: string; studentId: string }) => {
+    setCandidateBusyId(params.candidateId);
     try {
-      await updateAllocationMapping(allocationId, matchedStudentId);
-
-      const matchedStudent = matchedStudentId
-        ? students.find((student) => student.id === matchedStudentId) ?? null
-        : null;
-
-      setMappingRows((current) =>
-        current.map((row) => {
-          if (row.allocation_id !== allocationId) {
-            return row;
-          }
-
-          return {
-            ...row,
-            matched_student_id: matchedStudentId,
-            matched_student_name: matchedStudent?.name ?? null,
-            matched_student_prn: matchedStudent?.prn ?? null,
-            matched_student_email: matchedStudent?.email ?? null
-          };
-        })
-      );
-    } catch (mapError) {
-      const message = mapError instanceof Error ? mapError.message : "Failed to save mapping.";
-      toast.error(message);
+      await resolveSeatCandidate(params);
+      toast.success("Candidate resolved.");
+      await syncAfterMutation(selectedSessionId);
     } finally {
-      setMappingRowSavingId(null);
+      setCandidateBusyId(null);
+    }
+  };
+
+  const handleRemoveCandidate = async (candidateId: string) => {
+    setCandidateBusyId(candidateId);
+    try {
+      await removeSeatCandidate(candidateId);
+      toast.success("Candidate removed from draft.");
+      await syncAfterMutation(selectedSessionId);
+    } finally {
+      setCandidateBusyId(null);
+    }
+  };
+
+  const handleSaveAssignment = async (params: {
+    sessionId: string;
+    studentId: string;
+    labId: string;
+    seatNumber: string;
+  }) => {
+    setAssignmentBusyId(params.studentId);
+    try {
+      await updateSeatAssignment(params);
+      toast.success("Seat assignment saved.");
+      await syncAfterMutation(params.sessionId);
+    } finally {
+      setAssignmentBusyId(null);
+    }
+  };
+
+  const handleRemoveAssignment = async (params: { sessionId: string; studentId: string }) => {
+    setAssignmentBusyId(params.studentId);
+    try {
+      await removeSeatAssignment(params);
+      toast.success("Seat assignment cleared.");
+      await syncAfterMutation(params.sessionId);
+    } finally {
+      setAssignmentBusyId(null);
     }
   };
 
   const handlePublish = async () => {
     if (!selectedSessionId) {
-      toast.error("Select a session to publish.");
+      toast.error("Select a seat session to publish.");
       return;
     }
 
     setPublishing(true);
-
     try {
-      const publishedSession = await publishAllocationSession(selectedSessionId);
-      toast.success("Seat allocation session published.");
-      await refreshBaseData();
-      await refreshSessionData(publishedSession.id);
-      setSelectedSessionId(publishedSession.id);
+      const publishedSession = await publishSeatSession(selectedSessionId);
+      toast.success("Seat session published successfully.");
+      await syncAfterMutation(publishedSession.id);
     } catch (publishError) {
-      const message = publishError instanceof Error ? publishError.message : "Failed to publish session.";
+      const message = publishError instanceof Error ? publishError.message : "Failed to publish seat session.";
       toast.error(message);
     } finally {
       setPublishing(false);
     }
   };
+
+  const sourceScopedSession = selectedSession?.source_mode === sourceMode ? selectedSession : null;
+  const totalPublished = sessions.filter((session) => session.is_published).length;
 
   if (loading) {
     return (
@@ -291,17 +361,22 @@ export function SeatAllocationPage() {
           <div>
             <h1 className="text-2xl font-semibold text-neutral-900">Seat Allocation</h1>
             <p className="text-sm text-neutral-600">
-              Upload student rolls, allocate seats by lab capacity, manually map to student accounts, then publish.
+              Build a draft from real students or PRN uploads, auto-fill seats, make edits, then publish one live session.
             </p>
           </div>
 
-          <Button variant="outline" onClick={() => void refreshBaseData()} disabled={refreshing}>
-            <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-            Refresh
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={() => void refreshBaseData()} disabled={refreshing}>
+              <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+              Refresh
+            </Button>
+            <Button onClick={() => void handleCreateSession()} disabled={creatingSession}>
+              {creatingSession ? "Creating..." : `New ${sourceMode === "direct" ? "Direct" : "Upload"} Draft`}
+            </Button>
+          </div>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="mt-4 grid gap-2 sm:grid-cols-4">
           <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
             <p className="text-xs uppercase tracking-wide text-neutral-500">Labs</p>
             <p className="font-semibold text-neutral-900">{labs.length}</p>
@@ -311,13 +386,17 @@ export function SeatAllocationPage() {
             <p className="font-semibold text-neutral-900">{sessions.length}</p>
           </div>
           <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Upload Rows</p>
-            <p className="font-semibold text-neutral-900">{uploadedStudentCount}</p>
+            <p className="text-xs uppercase tracking-wide text-neutral-500">Students</p>
+            <p className="font-semibold text-neutral-900">{students.length}</p>
+          </div>
+          <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm">
+            <p className="text-xs uppercase tracking-wide text-neutral-500">Published</p>
+            <p className="font-semibold text-neutral-900">{totalPublished}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <LabsManager
           labs={labs}
           busy={labsBusy}
@@ -325,32 +404,51 @@ export function SeatAllocationPage() {
           onUpdate={handleLabUpdate}
           onDelete={handleLabDelete}
         />
-        <StudentUploadPanel
-          uploadSessionId={uploadSessionId}
-          onParsed={(result, previewRows) => {
-            void handleUploadParsed(result, previewRows);
-          }}
-          onSubmitRows={parseStudentsFromNormalizedRows}
-        />
-      </div>
 
-      <AllocationControls
-        labs={labs}
-        uploadSessionId={uploadSessionId}
-        studentCount={uploadedStudentCount}
-        loading={allocating}
-        onAllocate={handleAllocationRun}
-        onAllocated={handleAllocationCompleted}
-      />
+        <section className="rounded-lg card-border bg-white p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-neutral-900">Draft Source</h3>
+              <p className="text-sm text-neutral-600">Choose how this draft will receive students.</p>
+            </div>
+            {selectedSession ? (
+              <Badge variant="outline">Selected {selectedSession.id.slice(0, 8)}</Badge>
+            ) : (
+              <Badge variant="outline">No session selected</Badge>
+            )}
+          </div>
+
+          <Tabs value={sourceMode} onValueChange={(value) => setSourceMode(value as SeatSourceMode)}>
+            <TabsList className="grid w-full grid-cols-2 bg-neutral-100 p-1">
+              <TabsTrigger value="direct" className="h-10" activeIndicatorClassName="bg-white shadow-sm">
+                Select Students
+              </TabsTrigger>
+              <TabsTrigger value="upload" className="h-10" activeIndicatorClassName="bg-white shadow-sm">
+                Upload File
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
+            {sourceScopedSession ? (
+              <p>
+                Working in <span className="font-semibold text-neutral-900">{sourceScopedSession.source_mode}</span> draft <span className="font-semibold text-neutral-900">{sourceScopedSession.id.slice(0, 8)}</span>.
+              </p>
+            ) : (
+              <p>Create a new {sourceMode} draft, or open an existing one from the session list below.</p>
+            )}
+          </div>
+        </section>
+      </div>
 
       <div className="rounded-lg card-border bg-white p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-neutral-900">Allocation Sessions</h2>
+          <h2 className="text-lg font-semibold text-neutral-900">Seat Sessions</h2>
           <Badge variant="outline">Latest {sessions.length}</Badge>
         </div>
 
         {sessions.length === 0 ? (
-          <p className="text-sm text-neutral-600">No allocation sessions yet. Run one after uploading student data.</p>
+          <p className="text-sm text-neutral-600">No seat sessions yet. Create a direct or upload draft to begin.</p>
         ) : (
           <div className="overflow-hidden rounded-md border border-neutral-200">
             <table className="w-full text-sm">
@@ -358,7 +456,7 @@ export function SeatAllocationPage() {
                 <tr>
                   <th className="px-3 py-2 text-left font-semibold">Session</th>
                   <th className="px-3 py-2 text-left font-semibold">Created</th>
-                  <th className="px-3 py-2 text-left font-semibold">Mode</th>
+                  <th className="px-3 py-2 text-left font-semibold">Source</th>
                   <th className="px-3 py-2 text-left font-semibold">Status</th>
                   <th className="px-3 py-2 text-right font-semibold">Action</th>
                 </tr>
@@ -366,24 +464,24 @@ export function SeatAllocationPage() {
               <tbody className="divide-y divide-neutral-200 bg-white">
                 {sessions.map((session) => {
                   const selected = session.id === selectedSessionId;
-
                   return (
                     <tr key={session.id} className={selected ? "bg-blue-50/70" : ""}>
                       <td className="px-3 py-2.5 font-medium text-neutral-900">{session.id.slice(0, 8)}</td>
                       <td className="px-3 py-2.5 text-neutral-700">{formatDateTime(session.created_at)}</td>
-                      <td className="px-3 py-2.5 text-neutral-700">{session.mode}</td>
+                      <td className="px-3 py-2.5 text-neutral-700 capitalize">{session.source_mode}</td>
                       <td className="px-3 py-2.5">
-                        {session.is_published ? (
-                          <Badge className="bg-blue-600 text-white hover:bg-blue-600">Published</Badge>
-                        ) : (
-                          <Badge variant="outline">Draft</Badge>
-                        )}
+                        <Badge variant={session.is_published ? "info" : "outline"}>
+                          {session.is_published ? "Published" : session.status}
+                        </Badge>
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <Button
                           size="sm"
                           variant={selected ? "default" : "outline"}
-                          onClick={() => setSelectedSessionId(session.id)}
+                          onClick={() => {
+                            setSelectedSessionId(session.id);
+                            setSourceMode(session.source_mode);
+                          }}
                         >
                           {selected ? "Selected" : "Open"}
                         </Button>
@@ -397,17 +495,51 @@ export function SeatAllocationPage() {
         )}
       </div>
 
-      <AllocationSummary details={sessionDetails} />
+      {sourceMode === "direct" ? (
+        <DirectSelectionPanel
+          session={sourceScopedSession}
+          students={students}
+          candidates={candidates}
+          onAddStudents={handleDirectAdd}
+          onAdded={handleDirectAdded}
+        />
+      ) : (
+        <StudentUploadPanel
+          session={sourceScopedSession}
+          onImportRows={handleImportRows}
+          onImported={handleImported}
+          onDownloadTemplate={downloadSeatTemplate}
+        />
+      )}
 
-      <StudentMatchPanel
+      <AllocationControls
         session={selectedSession}
-        rows={mappingRows}
-        students={students}
-        mappingThreshold={1}
-        savingRowId={mappingRowSavingId}
-        publishing={publishing}
-        onMap={handleMapRow}
-        onPublish={handlePublish}
+        labs={labs}
+        details={sessionDetails}
+        loading={allocating}
+        onAllocate={handleAllocate}
+        onAllocated={handleAllocated}
+      />
+
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <StudentMatchPanel
+          session={selectedSession}
+          candidates={candidates}
+          students={students}
+          busyCandidateId={candidateBusyId}
+          onResolve={handleResolveCandidate}
+          onRemove={handleRemoveCandidate}
+        />
+        <AllocationSummary details={sessionDetails} publishing={publishing} onPublish={handlePublish} />
+      </div>
+
+      <SeatAssignmentsPanel
+        session={selectedSession}
+        labs={labs}
+        rows={assignmentRows}
+        savingStudentId={assignmentBusyId}
+        onSaveAssignment={handleSaveAssignment}
+        onRemoveAssignment={handleRemoveAssignment}
       />
     </section>
   );

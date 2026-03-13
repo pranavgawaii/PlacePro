@@ -1,73 +1,79 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileSpreadsheet, UploadCloud } from "lucide-react";
+import { Download, FileSpreadsheet, UploadCloud } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type {
-  HeaderMapping,
-  ParseStudentsResult,
-  ParsedRow,
+  CandidateHeaderMapping,
+  ImportSeatCandidatesResult,
+  ParseSource,
+  SeatSession,
+  SeatUploadRow,
   SpreadsheetTableCandidate
 } from "@/lib/seat-allocation/types";
 
 const loadSeatParsing = () => import("@/lib/seat-allocation/seatParsing");
 
 interface StudentUploadPanelProps {
-  uploadSessionId: string | null;
-  onParsed: (result: ParseStudentsResult, previewRows: ParsedRow[]) => void;
-  onSubmitRows: (params: {
-    rows: ParsedRow[];
-    source: "xlsx" | "csv" | "pdf";
-    upload_session_id?: string;
-  }) => Promise<ParseStudentsResult>;
+  session: SeatSession | null;
+  onImportRows: (params: {
+    sessionId: string;
+    rows: SeatUploadRow[];
+    source: ParseSource;
+  }) => Promise<ImportSeatCandidatesResult>;
+  onImported: (result: ImportSeatCandidatesResult) => void;
+  onDownloadTemplate: () => Promise<void>;
 }
 
-export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: StudentUploadPanelProps) {
+export function StudentUploadPanel({ session, onImportRows, onImported, onDownloadTemplate }: StudentUploadPanelProps) {
   const [file, setFile] = useState<File | null>(null);
   const [tables, setTables] = useState<SpreadsheetTableCandidate[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [rawRows, setRawRows] = useState<Record<string, unknown>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [mapping, setMapping] = useState<HeaderMapping>({
+  const [mapping, setMapping] = useState<CandidateHeaderMapping>({
+    prnKey: null,
     nameKey: null,
-    rollKey: null,
-    departmentKey: null
+    branchKey: null
   });
-  const [previewRows, setPreviewRows] = useState<ParsedRow[]>([]);
-  const [invalidRows, setInvalidRows] = useState<ParseStudentsResult["invalid_rows"]>([]);
+  const [previewRows, setPreviewRows] = useState<SeatUploadRow[]>([]);
+  const [invalidRows, setInvalidRows] = useState<Array<{ row_index: number; reason: string }>>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasRequiredMapping = Boolean(mapping.nameKey && mapping.rollKey);
-  const validCount = previewRows.length;
-  const invalidCount = invalidRows.length;
-
+  const editableUploadSession = session && session.source_mode === "upload" && !session.is_published ? session : null;
   const summaryText = useMemo(() => {
-    if (validCount === 0 && invalidCount === 0) {
-      return "Upload a file to preview and validate student rows.";
+    if (previewRows.length === 0 && invalidRows.length === 0) {
+      return "Upload a file to preview PRNs before importing them into a draft session.";
     }
 
-    return `${validCount} valid rows, ${invalidCount} invalid rows`;
-  }, [invalidCount, validCount]);
+    return `${previewRows.length} rows ready, ${invalidRows.length} invalid rows`;
+  }, [invalidRows.length, previewRows.length]);
 
   const clearState = () => {
     setTables([]);
     setSelectedTableId(null);
     setRawRows([]);
     setHeaders([]);
-    setMapping({ nameKey: null, rollKey: null, departmentKey: null });
+    setMapping({ prnKey: null, nameKey: null, branchKey: null });
     setPreviewRows([]);
     setInvalidRows([]);
   };
 
-  const applyPreview = async (rows: Record<string, unknown>[], nextMapping: HeaderMapping) => {
+  const applyPreview = async (rows: Record<string, unknown>[], nextMapping: CandidateHeaderMapping) => {
     const { normalizeParsedRowsWithMapping } = await loadSeatParsing();
     const normalized = normalizeParsedRowsWithMapping(rows, nextMapping);
     setPreviewRows(normalized.parsedRows);
-    setInvalidRows(normalized.invalidRows);
+    setInvalidRows(
+      normalized.invalidRows.map((row) => ({
+        row_index: row.row_index,
+        reason: row.reason
+      }))
+    );
   };
 
   const chooseTable = async (table: SpreadsheetTableCandidate) => {
@@ -85,7 +91,6 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
   const buildMergedTable = async (candidates: SpreadsheetTableCandidate[]): Promise<SpreadsheetTableCandidate> => {
     const { extractRowHeaders } = await loadSeatParsing();
     const mergedRows = candidates.flatMap((table) => table.rows);
-    const mergedHeaders = extractRowHeaders(mergedRows);
 
     return {
       id: "__all__",
@@ -93,7 +98,7 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
       sheet_name: "Merged",
       table_index: 0,
       row_count: mergedRows.length,
-      headers: mergedHeaders,
+      headers: extractRowHeaders(mergedRows),
       rows: mergedRows
     };
   };
@@ -106,18 +111,8 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
     const sorted = [...candidates].sort((left, right) => {
       const leftHeaders = left.headers.map((header) => header.toLowerCase());
       const rightHeaders = right.headers.map((header) => header.toLowerCase());
-      const leftHasName = leftHeaders.some((header) => header.includes("name"));
-      const leftHasRoll =
-        leftHeaders.some((header) => header.includes("roll")) ||
-        leftHeaders.some((header) => header.includes("enrollment")) ||
-        leftHeaders.some((header) => header.includes("prn"));
-      const rightHasName = rightHeaders.some((header) => header.includes("name"));
-      const rightHasRoll =
-        rightHeaders.some((header) => header.includes("roll")) ||
-        rightHeaders.some((header) => header.includes("enrollment")) ||
-        rightHeaders.some((header) => header.includes("prn"));
-      const leftScore = (leftHasName && leftHasRoll ? 1_000 : 0) + left.row_count;
-      const rightScore = (rightHasName && rightHasRoll ? 1_000 : 0) + right.row_count;
+      const leftScore = (leftHeaders.some((header) => header.includes("prn")) ? 1000 : 0) + left.row_count;
+      const rightScore = (rightHeaders.some((header) => header.includes("prn")) ? 1000 : 0) + right.row_count;
       return rightScore - leftScore;
     });
 
@@ -137,7 +132,7 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
       const seatParsing = await loadSeatParsing();
       const source = seatParsing.detectParseSource(nextFile.name);
       if (!source) {
-        throw new Error("Unsupported file type. Use .xlsx, .csv, or .pdf.");
+        throw new Error("Unsupported file type. Use .xlsx, .xls, .csv, or .pdf.");
       }
 
       let detectedTables: SpreadsheetTableCandidate[];
@@ -160,7 +155,7 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
       }
 
       if (detectedTables.length === 0) {
-        throw new Error("No valid table found in this file.");
+        throw new Error("No usable student table was found in this file.");
       }
 
       const tablesToUse =
@@ -182,7 +177,12 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
     }
   };
 
-  const handleSubmit = async () => {
+  const handleImport = async () => {
+    if (!editableUploadSession) {
+      setError("Create or open an upload draft session before importing rows.");
+      return;
+    }
+
     if (!file) {
       setError("Please choose a file first.");
       return;
@@ -191,17 +191,17 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
     const seatParsing = await loadSeatParsing();
     const source = seatParsing.detectParseSource(file.name);
     if (!source) {
-      setError("Unsupported file type. Use .xlsx, .csv, or .pdf.");
+      setError("Unsupported file type. Use .xlsx, .xls, .csv, or .pdf.");
       return;
     }
 
-    if (!hasRequiredMapping) {
-      setError("Map Name and Roll Number columns before uploading.");
+    if (!mapping.prnKey) {
+      setError("Map the PRN column before importing.");
       return;
     }
 
     if (previewRows.length === 0) {
-      setError("No valid rows available for upload.");
+      setError("No valid PRN rows are available to import.");
       return;
     }
 
@@ -209,38 +209,66 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
     setError(null);
 
     try {
-      const result = await onSubmitRows({
+      const result = await onImportRows({
+        sessionId: editableUploadSession.id,
         rows: previewRows,
-        source,
-        upload_session_id: uploadSessionId ?? undefined
+        source
       });
 
-      onParsed(result, previewRows);
+      onImported(result);
     } catch (submitError) {
-      const nextError = submitError instanceof Error ? submitError.message : "Upload failed.";
+      const nextError = submitError instanceof Error ? submitError.message : "Import failed.";
       setError(nextError);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleTemplateDownload = async () => {
+    setDownloadingTemplate(true);
+
+    try {
+      await onDownloadTemplate();
+    } catch (downloadError) {
+      const nextError = downloadError instanceof Error ? downloadError.message : "Template download failed.";
+      setError(nextError);
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
   return (
     <section className="rounded-lg card-border bg-white p-5 space-y-4">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Student Upload</h3>
-          <p className="text-sm text-neutral-600">Upload CSV/XLSX/PDF and map Name + Roll Number columns.</p>
+          <h3 className="text-lg font-semibold text-neutral-900">Upload Candidate List</h3>
+          <p className="text-sm text-neutral-600">
+            Import PRNs from Excel, CSV, or PDF, then review matched and unmatched rows before allocation.
+          </p>
         </div>
-        <Badge variant="outline" className="gap-1 border-blue-200 bg-blue-50 text-blue-700">
-          <FileSpreadsheet className="h-3.5 w-3.5" />
-          Session {uploadSessionId ? "active" : "new"}
-        </Badge>
+        <Button variant="outline" onClick={() => void handleTemplateDownload()} disabled={downloadingTemplate}>
+          <Download className="h-4 w-4" />
+          {downloadingTemplate ? "Preparing..." : "Download Template"}
+        </Button>
       </div>
 
       <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4">
-        <Label htmlFor="seat-upload-file" className="text-sm font-medium text-neutral-700">
-          Upload file
-        </Label>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <Label htmlFor="seat-upload-file" className="text-sm font-medium text-neutral-700">
+              Upload file
+            </Label>
+            <p className="mt-1 text-xs text-neutral-500">Accepted: .xlsx, .xls, .csv, .pdf</p>
+          </div>
+          {editableUploadSession ? (
+            <Badge variant="outline" className="gap-1 border-blue-200 bg-blue-50 text-blue-700">
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              Draft {editableUploadSession.id.slice(0, 8)}
+            </Badge>
+          ) : (
+            <Badge variant="outline">Upload draft required</Badge>
+          )}
+        </div>
         <Input
           id="seat-upload-file"
           type="file"
@@ -248,10 +276,9 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
           onChange={(event) => {
             void handleFileChange(event.target.files?.[0] ?? null);
           }}
-          className="mt-2"
+          className="mt-3"
           disabled={submitting}
         />
-        <p className="mt-2 text-xs text-neutral-500">Auto-detects tables and validates duplicates before save.</p>
       </div>
 
       {tables.length > 0 ? (
@@ -264,7 +291,9 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
                 <button
                   key={table.id}
                   type="button"
-                  onClick={() => chooseTable(table)}
+                  onClick={() => {
+                    void chooseTable(table);
+                  }}
                   className={[
                     "rounded-md border px-3 py-2 text-left transition",
                     isActive
@@ -288,7 +317,28 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Column mapping</p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="map-name">Name column</Label>
+              <Label htmlFor="map-prn">PRN column</Label>
+              <select
+                id="map-prn"
+                value={mapping.prnKey ?? ""}
+                onChange={(event) => {
+                  const next = { ...mapping, prnKey: event.target.value || null };
+                  setMapping(next);
+                  void applyPreview(rawRows, next);
+                }}
+                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-blue-300"
+              >
+                <option value="">Select column</option>
+                {headers.map((header) => (
+                  <option key={`prn-${header}`} value={header}>
+                    {header}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="map-name">Name column (optional)</Label>
               <select
                 id="map-name"
                 value={mapping.nameKey ?? ""}
@@ -297,9 +347,9 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
                   setMapping(next);
                   void applyPreview(rawRows, next);
                 }}
-                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none ring-0 focus:border-blue-300"
+                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-blue-300"
               >
-                <option value="">Select column</option>
+                <option value="">None</option>
                 {headers.map((header) => (
                   <option key={`name-${header}`} value={header}>
                     {header}
@@ -309,41 +359,20 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="map-roll">Roll column</Label>
+              <Label htmlFor="map-branch">Branch column (optional)</Label>
               <select
-                id="map-roll"
-                value={mapping.rollKey ?? ""}
+                id="map-branch"
+                value={mapping.branchKey ?? ""}
                 onChange={(event) => {
-                  const next = { ...mapping, rollKey: event.target.value || null };
+                  const next = { ...mapping, branchKey: event.target.value || null };
                   setMapping(next);
                   void applyPreview(rawRows, next);
                 }}
-                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none ring-0 focus:border-blue-300"
-              >
-                <option value="">Select column</option>
-                {headers.map((header) => (
-                  <option key={`roll-${header}`} value={header}>
-                    {header}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="map-dept">Department column (optional)</Label>
-              <select
-                id="map-dept"
-                value={mapping.departmentKey ?? ""}
-                onChange={(event) => {
-                  const next = { ...mapping, departmentKey: event.target.value || null };
-                  setMapping(next);
-                  void applyPreview(rawRows, next);
-                }}
-                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none ring-0 focus:border-blue-300"
+                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-blue-300"
               >
                 <option value="">None</option>
                 {headers.map((header) => (
-                  <option key={`dept-${header}`} value={header}>
+                  <option key={`branch-${header}`} value={header}>
                     {header}
                   </option>
                 ))}
@@ -353,59 +382,55 @@ export function StudentUploadPanel({ uploadSessionId, onParsed, onSubmitRows }: 
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => void handleSubmit()} disabled={submitting || !file || !hasRequiredMapping}>
-          <UploadCloud className="h-4 w-4" />
-          {submitting ? "Uploading..." : "Upload & Validate"}
-        </Button>
-        <span className="text-xs text-neutral-600">{summaryText}</span>
+      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <UploadCloud className="h-4 w-4 text-blue-600" />
+            <p className="text-sm font-medium text-neutral-900">{summaryText}</p>
+          </div>
+          <Button onClick={() => void handleImport()} disabled={submitting || previewRows.length === 0}>
+            {submitting ? "Importing..." : "Import Into Draft"}
+          </Button>
+        </div>
+
+        {previewRows.length > 0 ? (
+          <div className="overflow-hidden rounded-md border border-neutral-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-neutral-50 text-neutral-600">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold">PRN</th>
+                  <th className="px-3 py-2 text-left font-semibold">Name</th>
+                  <th className="px-3 py-2 text-left font-semibold">Branch</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200">
+                {previewRows.slice(0, 8).map((row) => (
+                  <tr key={`${row.prn}-${row.row_index}`}>
+                    <td className="px-3 py-2.5 font-medium text-neutral-900">{row.prn}</td>
+                    <td className="px-3 py-2.5 text-neutral-700">{row.name ?? "—"}</td>
+                    <td className="px-3 py-2.5 text-neutral-700">{row.branch ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
+        {invalidRows.length > 0 ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+            <p className="text-sm font-semibold text-amber-800">Invalid rows: {invalidRows.length}</p>
+            <ul className="mt-2 space-y-1 text-sm text-amber-800">
+              {invalidRows.slice(0, 5).map((row) => (
+                <li key={`invalid-${row.row_index}`}>
+                  Row {row.row_index}: {row.reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-      {(previewRows.length > 0 || invalidRows.length > 0) ? (
-        <div className="overflow-hidden rounded-md border border-neutral-200">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="px-3 py-2 text-left font-semibold">Row</th>
-                <th className="px-3 py-2 text-left font-semibold">Name</th>
-                <th className="px-3 py-2 text-left font-semibold">Roll Number</th>
-                <th className="px-3 py-2 text-left font-semibold">Department</th>
-                <th className="px-3 py-2 text-left font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 bg-white">
-              {previewRows.slice(0, 30).map((row) => (
-                <tr key={`valid-${row.row_index}-${row.roll_number}`}>
-                  <td className="px-3 py-2 text-neutral-600">{row.row_index ?? "-"}</td>
-                  <td className="px-3 py-2 text-neutral-900">{row.name}</td>
-                  <td className="px-3 py-2 text-neutral-800">{row.roll_number}</td>
-                  <td className="px-3 py-2 text-neutral-700">{row.department ?? "-"}</td>
-                  <td className="px-3 py-2">
-                    <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                      Valid
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {invalidRows.slice(0, 20).map((row) => (
-                <tr key={`invalid-${row.row_index}-${row.reason}`} className="bg-red-50/50">
-                  <td className="px-3 py-2 text-red-700">{row.row_index}</td>
-                  <td className="px-3 py-2 text-red-700" colSpan={3}>
-                    {row.reason}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className="rounded-md border border-red-200 bg-white px-2 py-0.5 text-xs font-medium text-red-700">
-                      Invalid
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
     </section>
   );
 }

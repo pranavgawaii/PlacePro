@@ -528,6 +528,150 @@ export interface Database {
           }
         ];
       };
+      seat_sessions: {
+        Row: {
+          id: string;
+          owner_id: string;
+          source_mode: "direct" | "upload";
+          status: "draft" | "ready" | "published";
+          is_published: boolean;
+          published_at: string | null;
+          published_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          source_mode: "direct" | "upload";
+          status?: "draft" | "ready" | "published";
+          is_published?: boolean;
+          published_at?: string | null;
+          published_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          source_mode?: "direct" | "upload";
+          status?: "draft" | "ready" | "published";
+          is_published?: boolean;
+          published_at?: string | null;
+          published_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "seat_sessions_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "seat_sessions_published_by_fkey";
+            columns: ["published_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      seat_session_candidates: {
+        Row: {
+          id: string;
+          session_id: string;
+          student_id: string | null;
+          prn: string;
+          name_snapshot: string | null;
+          branch_snapshot: string | null;
+          source_mode: "direct" | "upload";
+          source_row_no: number | null;
+          match_status: "matched" | "unmatched" | "duplicate" | "overflow" | "removed";
+          error_message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          student_id?: string | null;
+          prn: string;
+          name_snapshot?: string | null;
+          branch_snapshot?: string | null;
+          source_mode: "direct" | "upload";
+          source_row_no?: number | null;
+          match_status: "matched" | "unmatched" | "duplicate" | "overflow" | "removed";
+          error_message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          student_id?: string | null;
+          prn?: string;
+          name_snapshot?: string | null;
+          branch_snapshot?: string | null;
+          source_mode?: "direct" | "upload";
+          source_row_no?: number | null;
+          match_status?: "matched" | "unmatched" | "duplicate" | "overflow" | "removed";
+          error_message?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "seat_session_candidates_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "seat_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "seat_session_candidates_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      seat_assignments: {
+        Row: {
+          id: string;
+          session_id: string;
+          student_id: string;
+          lab_id: string;
+          seat_number: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          student_id: string;
+          lab_id: string;
+          seat_number: string;
+          created_at?: string;
+        };
+        Update: {
+          lab_id?: string;
+          seat_number?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "seat_assignments_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "seat_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "seat_assignments_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "seat_assignments_lab_id_fkey";
+            columns: ["lab_id"];
+            isOneToOne: false;
+            referencedRelation: "labs";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       students_temp: {
         Row: {
           id: string;
@@ -860,6 +1004,19 @@ export interface Database {
           status: string;
           seed: number | null;
           metadata: Json | null;
+          is_published: boolean;
+          published_at: string | null;
+          published_by: string | null;
+          created_at: string;
+        };
+      };
+      publish_seat_session: {
+        Args: { p_session_id: string };
+        Returns: {
+          id: string;
+          owner_id: string;
+          source_mode: "direct" | "upload";
+          status: "draft" | "ready" | "published";
           is_published: boolean;
           published_at: string | null;
           published_by: string | null;
