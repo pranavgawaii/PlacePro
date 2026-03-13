@@ -634,7 +634,8 @@ export interface Database {
         Row: {
           id: string;
           session_id: string;
-          student_id: string;
+          candidate_id: string | null;
+          student_id: string | null;
           lab_id: string;
           seat_number: string;
           created_at: string;
@@ -642,16 +643,26 @@ export interface Database {
         Insert: {
           id?: string;
           session_id: string;
-          student_id: string;
+          candidate_id?: string | null;
+          student_id?: string | null;
           lab_id: string;
           seat_number: string;
           created_at?: string;
         };
         Update: {
+          candidate_id?: string | null;
+          student_id?: string | null;
           lab_id?: string;
           seat_number?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "seat_assignments_candidate_id_fkey";
+            columns: ["candidate_id"];
+            isOneToOne: false;
+            referencedRelation: "seat_session_candidates";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "seat_assignments_session_id_fkey";
             columns: ["session_id"];

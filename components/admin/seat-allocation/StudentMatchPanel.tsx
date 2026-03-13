@@ -84,7 +84,7 @@ export function StudentMatchPanel({
 
   const handleResolve = async (candidateId: string) => {
     if (!editableSession) {
-      setError("Open an editable seat session to resolve unmatched rows.");
+      setError("Open an editable seat session to link candidate rows.");
       return;
     }
 
@@ -126,7 +126,7 @@ export function StudentMatchPanel({
         <div>
           <h3 className="text-lg font-semibold text-neutral-900">Candidate Review</h3>
           <p className="text-sm text-neutral-600">
-            Resolve unmatched Enrollment Numbers, remove duplicate rows, and clear overflow before publish.
+            Review imported and selected candidates, optionally link them to existing student accounts, and clear duplicate or overflow rows before publish.
           </p>
         </div>
         <Badge variant="outline">Active rows {candidates.length}</Badge>

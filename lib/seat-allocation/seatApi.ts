@@ -225,7 +225,7 @@ const syncSeatSessionStatus = async (
   }
 
   const candidateList = candidateRows.data ?? [];
-  const matchedCount = candidateList.filter((row) => row.match_status === "matched" && row.student_id).length;
+  const matchedCount = candidateList.filter((row) => row.match_status === "matched").length;
   const unresolvedCount = candidateList.filter((row) =>
     row.match_status === "unmatched" || row.match_status === "duplicate" || row.match_status === "overflow"
   ).length;
@@ -282,6 +282,15 @@ const buildSeatPreviewGroups = (
     left.title.localeCompare(right.title, undefined, { sensitivity: "base" })
   );
 };
+
+const candidateRevisionKey = (candidate: {
+  student_id?: string | null;
+  prn: string;
+  name_snapshot?: string | null;
+  source_row_no?: number | null;
+}) =>
+  [candidate.student_id ?? "", normalizePrn(candidate.prn), candidate.name_snapshot ?? "", String(candidate.source_row_no ?? "")]
+    .join("::");
 
 export const listLabs = async (): Promise<Lab[]> => {
   const { supabase } = await requireAdminContext();
@@ -478,7 +487,7 @@ export const listSeatSessions = async (limit = 20): Promise<SeatSessionListItem[
     }
 
     current.total_candidates += 1;
-    if (row.match_status === "matched" && row.student_id) {
+    if (row.match_status === "matched") {
       current.matched_candidates += 1;
     }
     if (row.match_status === "overflow") {
@@ -638,7 +647,7 @@ export const importSeatCandidates = async (params: {
   const seenInImport = new Set<string>();
   const inserts: Database["public"]["Tables"]["seat_session_candidates"]["Insert"][] = [];
   let matchedCount = 0;
-  let unmatchedCount = 0;
+  const unmatchedCount = 0;
   let duplicateCount = 0;
 
   params.rows.forEach((row) => {
@@ -670,36 +679,18 @@ export const importSeatCandidates = async (params: {
       return;
     }
 
-    if (matchedStudent) {
-      inserts.push({
-        session_id: params.sessionId,
-        student_id: matchedStudent.id,
-        prn: normalizedPrn,
-        name_snapshot: matchedStudent.name,
-        branch_snapshot: matchedStudent.branch,
-        source_mode: "upload",
-        source_row_no: row.row_index,
-        match_status: "matched",
-        error_message: null
-      });
-      matchedCount += 1;
-      seenInImport.add(normalizedPrn);
-      existingPrns.add(normalizedPrn);
-      return;
-    }
-
     inserts.push({
       session_id: params.sessionId,
-      student_id: null,
+      student_id: matchedStudent?.id ?? null,
       prn: normalizedPrn,
-      name_snapshot: sourceName,
-      branch_snapshot: sourceBranch,
+      name_snapshot: matchedStudent?.name ?? sourceName ?? normalizedPrn,
+      branch_snapshot: matchedStudent?.branch ?? sourceBranch,
       source_mode: "upload",
       source_row_no: row.row_index,
-      match_status: "unmatched",
-      error_message: "No student record found for this Enrollment No."
+      match_status: "matched",
+      error_message: null
     });
-    unmatchedCount += 1;
+    matchedCount += 1;
     seenInImport.add(normalizedPrn);
     existingPrns.add(normalizedPrn);
   });
@@ -825,6 +816,16 @@ export const resolveSeatCandidate = async (params: {
     throw asError(error, "Unable to resolve candidate to a real student.");
   }
 
+  const { error: assignmentError } = await supabase
+    .from("seat_assignments")
+    .update({ student_id: student.id })
+    .eq("session_id", candidate.session_id)
+    .eq("candidate_id", candidate.id);
+
+  if (assignmentError) {
+    throw asError(assignmentError, "Unable to sync seat assignment with the resolved student.");
+  }
+
   await syncSeatSessionStatus(supabase, candidate.session_id);
 };
 
@@ -854,16 +855,14 @@ export const removeSeatCandidate = async (candidateId: string): Promise<void> =>
     throw asError(error, "Unable to remove seat candidate.");
   }
 
-  if (candidate.student_id) {
-    const { error: assignmentError } = await supabase
-      .from("seat_assignments")
-      .delete()
-      .eq("session_id", candidate.session_id)
-      .eq("student_id", candidate.student_id);
+  const { error: assignmentError } = await supabase
+    .from("seat_assignments")
+    .delete()
+    .eq("session_id", candidate.session_id)
+    .eq("candidate_id", candidate.id);
 
-    if (assignmentError) {
-      throw asError(assignmentError, "Unable to clear seat assignment for removed candidate.");
-    }
+  if (assignmentError) {
+    throw asError(assignmentError, "Unable to clear seat assignment for removed candidate.");
   }
 
   await syncSeatSessionStatus(supabase, candidate.session_id);
@@ -909,9 +908,9 @@ export const autoAllocateSeats = async (params: {
     throw new Error("One or more selected labs are invalid.");
   }
 
-  const matchedCandidates = (candidatesResult.data ?? []).filter((candidate) => Boolean(candidate.student_id));
+  const matchedCandidates = (candidatesResult.data ?? []).filter((candidate) => candidate.match_status === "matched");
   if (matchedCandidates.length === 0) {
-    throw new Error("Add or resolve students before running auto allocation.");
+    throw new Error("Add or import candidates before running auto allocation.");
   }
 
   const resetOverflowIds = matchedCandidates.map((candidate) => candidate.id);
@@ -929,7 +928,8 @@ export const autoAllocateSeats = async (params: {
   const allocation = buildAutoAllocation({
     labs: orderedLabs,
     students: matchedCandidates.map((candidate) => ({
-      student_id: candidate.student_id as string,
+      candidate_id: candidate.id,
+      student_id: candidate.student_id,
       prn: normalizePrn(candidate.prn),
       name: candidate.name_snapshot ?? candidate.prn
     }))
@@ -948,6 +948,7 @@ export const autoAllocateSeats = async (params: {
     const { error: insertError } = await supabase.from("seat_assignments").insert(
       allocation.assignments.map((assignment) => ({
         session_id: params.sessionId,
+        candidate_id: assignment.candidate_id,
         student_id: assignment.student_id,
         lab_id: assignment.lab_id,
         seat_number: assignment.seat_number
@@ -959,9 +960,9 @@ export const autoAllocateSeats = async (params: {
     }
   }
 
-  if (allocation.overflow_student_ids.length > 0) {
+  if (allocation.overflow_candidate_ids.length > 0) {
     const overflowCandidateIds = matchedCandidates
-      .filter((candidate) => candidate.student_id && allocation.overflow_student_ids.includes(candidate.student_id))
+      .filter((candidate) => allocation.overflow_candidate_ids.includes(candidate.id))
       .map((candidate) => candidate.id);
 
     if (overflowCandidateIds.length > 0) {
@@ -984,7 +985,7 @@ export const autoAllocateSeats = async (params: {
   return {
     session_id: params.sessionId,
     assigned_count: allocation.assignments.length,
-    overflow_count: allocation.overflow_student_ids.length,
+    overflow_count: allocation.overflow_candidate_ids.length,
     seat_summary: allocation.seat_summary
   };
 };
@@ -1001,7 +1002,7 @@ export const listSeatAssignments = async (sessionId: string): Promise<SeatAssign
         .eq("match_status", "matched"),
       supabase
         .from("seat_assignments")
-        .select("student_id, lab_id, seat_number")
+        .select("candidate_id, student_id, lab_id, seat_number")
         .eq("session_id", sessionId)
     ]);
 
@@ -1013,16 +1014,15 @@ export const listSeatAssignments = async (sessionId: string): Promise<SeatAssign
     throw asError(assignmentError, "Unable to load seat assignments.");
   }
 
-  const assignmentMap = new Map((assignments ?? []).map((assignment) => [assignment.student_id, assignment]));
+  const assignmentMap = new Map((assignments ?? []).map((assignment) => [assignment.candidate_id, assignment]));
 
   return (candidates ?? [])
-    .filter((candidate) => Boolean(candidate.student_id))
     .map((candidate) => {
-      const assignment = assignmentMap.get(candidate.student_id as string);
+      const assignment = assignmentMap.get(candidate.id);
       return {
         candidate_id: candidate.id,
-        student_id: candidate.student_id as string,
-        student_name: candidate.name_snapshot ?? "Student",
+        student_id: candidate.student_id,
+        student_name: candidate.name_snapshot ?? "Candidate",
         prn: candidate.prn,
         branch: candidate.branch_snapshot,
         lab_id: assignment?.lab_id ?? null,
@@ -1047,7 +1047,7 @@ export const listSeatAssignments = async (sessionId: string): Promise<SeatAssign
 
 export const updateSeatAssignment = async (params: {
   sessionId: string;
-  studentId: string;
+  candidateId: string;
   labId: string;
   seatNumber: string;
 }): Promise<void> => {
@@ -1061,9 +1061,9 @@ export const updateSeatAssignment = async (params: {
 
   const { data: candidate, error: candidateError } = await supabase
     .from("seat_session_candidates")
-    .select("id")
+    .select("id, student_id")
+    .eq("id", params.candidateId)
     .eq("session_id", params.sessionId)
-    .eq("student_id", params.studentId)
     .eq("match_status", "matched")
     .maybeSingle();
 
@@ -1072,7 +1072,7 @@ export const updateSeatAssignment = async (params: {
   }
 
   if (!candidate) {
-    throw new Error("Only matched students can be assigned a seat.");
+    throw new Error("Only matched candidates can be assigned a seat.");
   }
 
   const { error } = await supabase
@@ -1080,11 +1080,12 @@ export const updateSeatAssignment = async (params: {
     .upsert(
       {
         session_id: params.sessionId,
-        student_id: params.studentId,
+        candidate_id: params.candidateId,
+        student_id: candidate.student_id ?? null,
         lab_id: params.labId,
         seat_number: seatNumber
       },
-      { onConflict: "session_id,student_id" }
+      { onConflict: "session_id,candidate_id" }
     );
 
   if (error) {
@@ -1096,7 +1097,7 @@ export const updateSeatAssignment = async (params: {
 
 export const removeSeatAssignment = async (params: {
   sessionId: string;
-  studentId: string;
+  candidateId: string;
 }): Promise<void> => {
   const { supabase } = await requireAdminContext();
   await ensureEditableSeatSession(supabase, params.sessionId);
@@ -1105,7 +1106,7 @@ export const removeSeatAssignment = async (params: {
     .from("seat_assignments")
     .delete()
     .eq("session_id", params.sessionId)
-    .eq("student_id", params.studentId);
+    .eq("candidate_id", params.candidateId);
 
   if (error) {
     throw asError(error, "Unable to remove seat assignment.");
@@ -1142,7 +1143,7 @@ export const getSeatSessionDetails = async (sessionId: string): Promise<SeatSess
 
   const stats = {
     total_candidates: candidates.length,
-    matched_candidates: candidates.filter((row) => row.match_status === "matched" && row.student_id).length,
+    matched_candidates: candidates.filter((row) => row.match_status === "matched").length,
     unmatched_candidates: candidates.filter((row) => row.match_status === "unmatched").length,
     duplicate_candidates: candidates.filter((row) => row.match_status === "duplicate").length,
     overflow_candidates: candidates.filter((row) => row.match_status === "overflow").length,
@@ -1280,9 +1281,10 @@ export const createSeatSessionRevision = async (params: {
   }
 
   const revisionSession = toSeatSession(sessionRow);
+  const candidateIdMap = new Map<string, string>();
 
   if ((candidates ?? []).length > 0) {
-    const { error } = await supabase.from("seat_session_candidates").insert(
+    const { data: insertedCandidates, error } = await supabase.from("seat_session_candidates").insert(
       (candidates ?? []).map((candidate) => ({
         session_id: revisionSession.id,
         student_id: candidate.student_id,
@@ -1294,21 +1296,52 @@ export const createSeatSessionRevision = async (params: {
         match_status: candidate.match_status,
         error_message: candidate.error_message
       }))
-    );
+    ).select("id, student_id, prn, name_snapshot, source_row_no");
 
     if (error) {
       throw asError(error, "Unable to copy seat candidates into the revision draft.");
     }
+
+    (insertedCandidates ?? []).forEach((candidate) => {
+      candidateIdMap.set(
+        candidateRevisionKey(candidate),
+        candidate.id
+      );
+    });
   }
 
   if ((assignments ?? []).length > 0) {
     const { error } = await supabase.from("seat_assignments").insert(
-      (assignments ?? []).map((assignment) => ({
-        session_id: revisionSession.id,
-        student_id: assignment.student_id,
-        lab_id: assignment.lab_id,
-        seat_number: assignment.seat_number
-      }))
+      (assignments ?? [])
+        .map((assignment) => {
+          const sourceCandidate =
+            (candidates ?? []).find((candidate) => candidate.id === assignment.candidate_id) ??
+            (candidates ?? []).find(
+              (candidate) =>
+                candidate.student_id &&
+                assignment.student_id &&
+                candidate.student_id === assignment.student_id
+            ) ??
+            null;
+
+          if (!sourceCandidate) {
+            return null;
+          }
+
+          const revisionCandidateId = candidateIdMap.get(candidateRevisionKey(sourceCandidate));
+          if (!revisionCandidateId) {
+            return null;
+          }
+
+          return {
+            session_id: revisionSession.id,
+            candidate_id: revisionCandidateId,
+            student_id: sourceCandidate.student_id ?? assignment.student_id ?? null,
+            lab_id: assignment.lab_id,
+            seat_number: assignment.seat_number
+          };
+        })
+        .filter(Boolean) as Database["public"]["Tables"]["seat_assignments"]["Insert"][]
     );
 
     if (error) {
@@ -1329,10 +1362,12 @@ export const getSeatDocumentPreview = async (
   const { data, error } = await supabase
     .from("seat_assignments")
     .select(`
+      candidate_id,
       student_id,
       seat_number,
       labs!seat_assignments_lab_id_fkey(lab_name),
-      students!seat_assignments_student_id_fkey(name, prn, branch)
+      students!seat_assignments_student_id_fkey(name, prn, branch),
+      seat_session_candidates!seat_assignments_candidate_id_fkey(prn, name_snapshot, branch_snapshot)
     `)
     .eq("session_id", sessionId);
 
@@ -1341,19 +1376,21 @@ export const getSeatDocumentPreview = async (
   }
 
   const previewRows = (data ?? []) as Array<{
-    student_id: string;
+    candidate_id: string | null;
+    student_id: string | null;
     seat_number: string;
     labs: { lab_name: string } | null;
     students: { name: string; prn: string | null; branch: string | null } | null;
+    seat_session_candidates: { prn: string; name_snapshot: string | null; branch_snapshot: string | null } | null;
   }>;
 
   const rows = previewRows
     .map((row) => ({
-      student_id: row.student_id,
+      student_id: row.student_id ?? row.candidate_id ?? row.seat_number,
       seat_number: row.seat_number,
-      enrollment_no: normalizePrn(row.students?.prn),
-      student_name: row.students?.name ?? "Student",
-      branch: row.students?.branch ?? null,
+      enrollment_no: normalizePrn(row.students?.prn ?? row.seat_session_candidates?.prn),
+      student_name: row.students?.name ?? row.seat_session_candidates?.name_snapshot ?? "Candidate",
+      branch: row.students?.branch ?? row.seat_session_candidates?.branch_snapshot ?? null,
       lab_name: row.labs?.lab_name ?? "Unknown Lab"
     }))
     .sort((left, right) => {
@@ -1470,17 +1507,39 @@ export const getPublishedSeatForCurrentStudent = async (): Promise<PublishedSeat
     return null;
   }
 
-  const { data: assignmentRow, error: assignmentError } = await supabase
-    .from("seat_assignments")
-    .select("session_id, lab_id, seat_number, created_at")
+  const { data: candidateRows, error: candidateError } = await supabase
+    .from("seat_session_candidates")
+    .select("id")
     .eq("session_id", sessionRow.id)
     .eq("student_id", studentRow.id)
-    .maybeSingle();
+    .neq("match_status", "removed");
+
+  if (candidateError) {
+    throw asError(candidateError, "Unable to load published seat candidate details.");
+  }
+
+  const candidateIds = Array.from(new Set((candidateRows ?? []).map((row) => row.id)));
+
+  let assignmentQuery = supabase
+    .from("seat_assignments")
+    .select("session_id, lab_id, seat_number, created_at, candidate_id, student_id")
+    .eq("session_id", sessionRow.id);
+
+  if (candidateIds.length > 0) {
+    assignmentQuery = assignmentQuery.or(`student_id.eq.${studentRow.id},candidate_id.in.(${candidateIds.join(",")})`);
+  } else {
+    assignmentQuery = assignmentQuery.eq("student_id", studentRow.id);
+  }
+
+  const { data: assignmentRows, error: assignmentError } = await assignmentQuery
+    .order("created_at", { ascending: true })
+    .limit(1);
 
   if (assignmentError) {
     throw asError(assignmentError, "Unable to load published seat assignment.");
   }
 
+  const assignmentRow = assignmentRows?.[0] ?? null;
   if (!assignmentRow) {
     return null;
   }

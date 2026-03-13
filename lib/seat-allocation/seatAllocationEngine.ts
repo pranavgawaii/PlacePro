@@ -7,7 +7,8 @@ interface SeatToken {
 }
 
 export interface AllocatableStudent {
-  student_id: string;
+  candidate_id: string;
+  student_id?: string | null;
   prn: string;
   name: string;
 }
@@ -124,7 +125,8 @@ export const autoAllocateSeats = <T extends AllocatableStudent>(params: {
   const orderedStudents = sortAllocatableStudents(params.students);
 
   const assignments: Array<{
-    student_id: string;
+    candidate_id: string;
+    student_id: string | null;
     lab_id: string;
     seat_number: string;
   }> = [];
@@ -148,7 +150,8 @@ export const autoAllocateSeats = <T extends AllocatableStudent>(params: {
       }
 
       assignments.push({
-        student_id: student.student_id,
+        candidate_id: student.candidate_id,
+        student_id: student.student_id ?? null,
         lab_id: lab.id,
         seat_number: seatNumber
       });
@@ -169,6 +172,6 @@ export const autoAllocateSeats = <T extends AllocatableStudent>(params: {
   return {
     assignments,
     seat_summary: seatSummary,
-    overflow_student_ids: orderedStudents.slice(studentIndex).map((student) => student.student_id)
+    overflow_candidate_ids: orderedStudents.slice(studentIndex).map((student) => student.candidate_id)
   };
 };

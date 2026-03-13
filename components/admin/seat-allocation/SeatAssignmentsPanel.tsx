@@ -12,8 +12,8 @@ interface SeatAssignmentsPanelProps {
   labs: Lab[];
   rows: SeatAssignmentEditorRow[];
   savingStudentId?: string | null;
-  onSaveAssignment: (params: { sessionId: string; studentId: string; labId: string; seatNumber: string }) => Promise<void>;
-  onRemoveAssignment: (params: { sessionId: string; studentId: string }) => Promise<void>;
+  onSaveAssignment: (params: { sessionId: string; candidateId: string; labId: string; seatNumber: string }) => Promise<void>;
+  onRemoveAssignment: (params: { sessionId: string; candidateId: string }) => Promise<void>;
 }
 
 interface DraftState {
@@ -52,7 +52,7 @@ export function SeatAssignmentsPanel({
   }, [normalizedQuery, rows]);
 
   const getDraft = (row: SeatAssignmentEditorRow): DraftState => {
-    return drafts[row.student_id] ?? {
+    return drafts[row.candidate_id] ?? {
       labId: row.lab_id ?? "",
       seatNumber: row.seat_number ?? ""
     };
@@ -82,7 +82,7 @@ export function SeatAssignmentsPanel({
     try {
       await onSaveAssignment({
         sessionId: editableSession.id,
-        studentId: row.student_id,
+        candidateId: row.candidate_id,
         labId: draft.labId,
         seatNumber: draft.seatNumber
       });
@@ -103,11 +103,11 @@ export function SeatAssignmentsPanel({
     try {
       await onRemoveAssignment({
         sessionId: editableSession.id,
-        studentId: row.student_id
+        candidateId: row.candidate_id
       });
       setDrafts((current) => ({
         ...current,
-        [row.student_id]: { labId: "", seatNumber: "" }
+        [row.candidate_id]: { labId: "", seatNumber: "" }
       }));
     } catch (removeError) {
       const nextError = removeError instanceof Error ? removeError.message : "Failed to clear seat assignment.";
@@ -164,18 +164,18 @@ export function SeatAssignmentsPanel({
             ) : (
               filteredRows.map((row) => {
                 const draft = getDraft(row);
-                const busy = savingStudentId === row.student_id;
+                const busy = savingStudentId === row.candidate_id;
                 return (
-                  <tr key={row.student_id}>
+                  <tr key={row.candidate_id}>
                     <td className="px-3 py-2.5 align-top">
                       <p className="font-medium text-neutral-900">{row.student_name}</p>
                       <p className="text-xs text-neutral-500">{row.prn}</p>
                     </td>
                     <td className="px-3 py-2.5 align-top text-neutral-600">{row.branch ?? "—"}</td>
                     <td className="px-3 py-2.5 align-top">
-                      <select
-                        value={draft.labId}
-                        onChange={(event) => setDraft(row.student_id, { ...draft, labId: event.target.value })}
+                        <select
+                          value={draft.labId}
+                          onChange={(event) => setDraft(row.candidate_id, { ...draft, labId: event.target.value })}
                         className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-300"
                         disabled={!editableSession || busy}
                       >
@@ -190,7 +190,7 @@ export function SeatAssignmentsPanel({
                     <td className="px-3 py-2.5 align-top">
                       <Input
                         value={draft.seatNumber}
-                        onChange={(event) => setDraft(row.student_id, { ...draft, seatNumber: event.target.value.toUpperCase() })}
+                        onChange={(event) => setDraft(row.candidate_id, { ...draft, seatNumber: event.target.value.toUpperCase() })}
                         placeholder="A-01"
                         disabled={!editableSession || busy}
                       />
@@ -219,7 +219,7 @@ export function SeatAssignmentsPanel({
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => setDraft(row.student_id, { labId: row.lab_id ?? "", seatNumber: row.seat_number ?? "" })}
+                          onClick={() => setDraft(row.candidate_id, { labId: row.lab_id ?? "", seatNumber: row.seat_number ?? "" })}
                           disabled={busy}
                         >
                           <RotateCcw className="h-3.5 w-3.5" />

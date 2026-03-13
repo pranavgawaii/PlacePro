@@ -103,7 +103,7 @@ export interface SeatSessionCandidateView {
 
 export interface SeatAssignmentEditorRow {
   candidate_id: string;
-  student_id: string;
+  student_id: string | null;
   student_name: string;
   prn: string;
   branch: string | null;

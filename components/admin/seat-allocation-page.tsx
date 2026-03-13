@@ -441,11 +441,11 @@ export function SeatAllocationPage() {
 
   const handleSaveAssignment = async (params: {
     sessionId: string;
-    studentId: string;
+    candidateId: string;
     labId: string;
     seatNumber: string;
   }) => {
-    setAssignmentBusyId(params.studentId);
+    setAssignmentBusyId(params.candidateId);
     try {
       await updateSeatAssignment(params);
       toast.success("Seat assignment saved.");
@@ -455,8 +455,8 @@ export function SeatAllocationPage() {
     }
   };
 
-  const handleRemoveAssignment = async (params: { sessionId: string; studentId: string }) => {
-    setAssignmentBusyId(params.studentId);
+  const handleRemoveAssignment = async (params: { sessionId: string; candidateId: string }) => {
+    setAssignmentBusyId(params.candidateId);
     try {
       await removeSeatAssignment(params);
       toast.success("Seat assignment cleared.");

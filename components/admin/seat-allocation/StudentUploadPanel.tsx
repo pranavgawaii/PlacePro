@@ -249,7 +249,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
         <div>
           <h3 className="text-lg font-semibold text-neutral-900">Upload Candidate List</h3>
           <p className="text-sm text-neutral-600">
-            Import candidates from Excel, CSV, or PDF using Name, Enrollment No, and Branch, then review matches before allocation.
+            Import any candidate list from Excel, CSV, or PDF using Name, Enrollment No, and Branch. Existing students are linked automatically when available, but database matching is optional.
           </p>
         </div>
         <Button variant="outline" onClick={() => void handleTemplateDownload()} disabled={downloadingTemplate}>
