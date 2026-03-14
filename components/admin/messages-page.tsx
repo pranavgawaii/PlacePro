@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
@@ -850,14 +851,24 @@ export function AdminMessagesPage() {
                   <p className="text-xs text-neutral-500">
                     {selectedConversation.isHelp ? "Student support inbox" : "Official communication channel"}
                   </p>
-                  <Button
-                    type="button"
-                    onClick={() => setComposerOpen(true)}
-                    className="h-10 rounded-lg bg-blue-600 px-5 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-sm"
-                  >
-                    <Send className="mr-2 h-4 w-4" />
-                    Compose
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      asChild
+                      className="h-10 rounded-lg border-neutral-200 px-5 text-neutral-700 transition-all duration-200 hover:-translate-y-0.5 hover:bg-neutral-50 hover:shadow-sm"
+                    >
+                      <Link href="/admin/messages/reminders/new">Send Reminder</Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setComposerOpen(true)}
+                      className="h-10 rounded-lg bg-blue-600 px-5 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-sm"
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Compose
+                    </Button>
+                  </div>
                 </div>
               </footer>
             </>

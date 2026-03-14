@@ -487,6 +487,80 @@ export interface Database {
           }
         ];
       };
+      reminders: {
+        Row: {
+          id: string;
+          email_subject: string | null;
+          email_title: string | null;
+          message_email: string | null;
+          message_whatsapp: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          email_subject?: string | null;
+          email_title?: string | null;
+          message_email?: string | null;
+          message_whatsapp?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          email_subject?: string | null;
+          email_title?: string | null;
+          message_email?: string | null;
+          message_whatsapp?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reminders_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      reminder_recipients: {
+        Row: {
+          id: string;
+          reminder_id: string;
+          student_id: string;
+          channel: "email" | "whatsapp";
+          status: "sent" | "failed";
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          reminder_id: string;
+          student_id: string;
+          channel: "email" | "whatsapp";
+          status: "sent" | "failed";
+          sent_at?: string | null;
+        };
+        Update: {
+          channel?: "email" | "whatsapp";
+          status?: "sent" | "failed";
+          sent_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reminder_recipients_reminder_id_fkey";
+            columns: ["reminder_id"];
+            isOneToOne: false;
+            referencedRelation: "reminders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reminder_recipients_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       labs: {
         Row: {
           id: string;
