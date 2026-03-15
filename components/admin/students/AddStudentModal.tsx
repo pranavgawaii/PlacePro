@@ -242,7 +242,7 @@ export function AddStudentModal({ open, onOpenChange, onImported }: AddStudentMo
         <DialogHeader>
           <DialogTitle>Add Student</DialogTitle>
           <DialogDescription>
-            Create student accounts manually, or switch to multi-add mode for up to 5 students.
+            Create student accounts manually, or switch to multi-add mode for up to 5 students. Leave mobile blank if you want PlacePro to auto-assign a 10-digit number.
           </DialogDescription>
         </DialogHeader>
 
@@ -299,10 +299,17 @@ export function AddStudentModal({ open, onOpenChange, onImported }: AddStudentMo
 
               <div className="space-y-2">
                 <Label htmlFor="student-mobile">Mobile</Label>
-                <Input id="student-mobile" maxLength={10} {...singleForm.register("mobile")} aria-describedby="single-mobile-error" />
+                <Input
+                  id="student-mobile"
+                  maxLength={10}
+                  placeholder="Optional - auto generated if blank"
+                  {...singleForm.register("mobile")}
+                  aria-describedby="single-mobile-error"
+                />
                 <p id="single-mobile-error" className="text-xs text-red-600">
                   {singleForm.formState.errors.mobile?.message}
                 </p>
+                <p className="text-[11px] text-neutral-500">PlacePro will assign a 10-digit number if this is left empty.</p>
               </div>
 
               <div className="space-y-2">
@@ -454,7 +461,11 @@ export function AddStudentModal({ open, onOpenChange, onImported }: AddStudentMo
                     </div>
                     <div>
                       <Label>Mobile</Label>
-                      <Input maxLength={10} {...multiForm.register(`students.${index}.mobile`)} />
+                      <Input
+                        maxLength={10}
+                        placeholder="Optional"
+                        {...multiForm.register(`students.${index}.mobile`)}
+                      />
                       <p className="text-xs text-red-600">{multiForm.formState.errors.students?.[index]?.mobile?.message}</p>
                     </div>
                     <div>

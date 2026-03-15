@@ -39,6 +39,20 @@ function normalizeSupabaseErrorMessage(message: string) {
   return message;
 }
 
+function generateFallbackMobile() {
+  const firstDigit = String(6 + Math.floor(Math.random() * 4));
+  const remaining = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10)).join("");
+  return `${firstDigit}${remaining}`;
+}
+
+function normalizeStudentMobile(mobile: string) {
+  const trimmed = mobile.trim();
+  if (/^[6-9]\d{9}$/.test(trimmed)) {
+    return trimmed;
+  }
+  return generateFallbackMobile();
+}
+
 async function cleanupAuthUser(admin: AdminClient, userId: string) {
   const { error } = await admin.auth.admin.deleteUser(userId);
   return !error;
@@ -49,10 +63,11 @@ export async function provisionStudentAccount(
   input: StudentProvisionInput
 ): Promise<StudentProvisionResult> {
   const { student, passwordStrategy, forcePasswordChange } = input;
+  const resolvedMobile = normalizeStudentMobile(student.mobile);
   const password =
     passwordStrategy === "random"
       ? generateRandomPassword(8)
-      : generatePatternPassword(student.branch, student.enrollment_no, student.mobile);
+      : generatePatternPassword(student.branch, student.enrollment_no, resolvedMobile);
 
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email: student.email,
@@ -78,7 +93,7 @@ export async function provisionStudentAccount(
     name: student.name,
     email: student.email,
     prn: student.enrollment_no,
-    phone: student.mobile,
+    phone: resolvedMobile,
     branch: student.branch,
     batch_year: student.batch_year,
     documents_uploaded: 0,

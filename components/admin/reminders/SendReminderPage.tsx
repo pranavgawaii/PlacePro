@@ -36,6 +36,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { BRANCHES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { formatReminderMessageHtml } from "@/lib/reminders/emailFormatting";
 import type {
@@ -52,7 +53,7 @@ import type { Database } from "@/types/database.types";
 
 type StudentRow = Pick<
   Database["public"]["Tables"]["students"]["Row"],
-  "id" | "name" | "email" | "phone" | "prn" | "is_active"
+  "id" | "name" | "email" | "phone" | "prn" | "is_active" | "branch" | "batch_year"
 >;
 
 type SendReminderPageProps = ReminderChannelAvailability & {
@@ -73,6 +74,8 @@ export function SendReminderPage({ emailEnabled, whatsappEnabled, senderEmail }:
   const [channels, setChannels] = useState<ReminderChannel[]>(emailEnabled ? ["email"] : whatsappEnabled ? ["whatsapp"] : []);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
+  const [branchFilter, setBranchFilter] = useState<string>("all");
+  const [batchFilter, setBatchFilter] = useState<string>("all");
   const [uploadedRows, setUploadedRows] = useState<UploadedReminderRecipient[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [emailSubject, setEmailSubject] = useState("");
@@ -113,7 +116,7 @@ export function SendReminderPage({ emailEnabled, whatsappEnabled, senderEmail }:
     async function loadStudents() {
       const { data, error } = await supabase
         .from("students")
-        .select("id, name, email, phone, prn, is_active")
+        .select("id, name, email, phone, prn, is_active, branch, batch_year")
         .eq("is_active", true)
         .order("name", { ascending: true });
 
@@ -148,18 +151,24 @@ export function SendReminderPage({ emailEnabled, whatsappEnabled, senderEmail }:
 
   const filteredStudents = useMemo(() => {
     const query = studentSearchQuery.trim().toLowerCase();
-    if (!query) {
-      return students;
-    }
-
     return students.filter((student) => {
+      const matchesBranch = branchFilter === "all" ? true : student.branch === branchFilter;
+      const matchesBatch = batchFilter === "all" ? true : String(student.batch_year) === batchFilter;
       return (
-        student.name.toLowerCase().includes(query) ||
-        (student.email ?? "").toLowerCase().includes(query) ||
-        (student.prn ?? "").toLowerCase().includes(query)
+        matchesBranch &&
+        matchesBatch &&
+        (!query ||
+          student.name.toLowerCase().includes(query) ||
+          (student.email ?? "").toLowerCase().includes(query) ||
+          (student.prn ?? "").toLowerCase().includes(query) ||
+          (student.phone ?? "").toLowerCase().includes(query))
       );
     });
-  }, [studentSearchQuery, students]);
+  }, [batchFilter, branchFilter, studentSearchQuery, students]);
+
+  const availableBatches = useMemo(() => {
+    return [...new Set(students.map((student) => student.batch_year))].sort((left, right) => left - right);
+  }, [students]);
 
   const selectedRecipients = useMemo(() => {
     const selectedSet = new Set(selectedStudentIds);
@@ -465,29 +474,72 @@ export function SendReminderPage({ emailEnabled, whatsappEnabled, senderEmail }:
 
             {recipientMode === "selected" ? (
               <div className="space-y-4 rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                  <Input
-                    value={studentSearchQuery}
-                    onChange={(event) => setStudentSearchQuery(event.target.value)}
-                    placeholder="Search by name, email, or Enrollment No"
-                    className="h-11 rounded-xl border-neutral-200 bg-white pl-9"
-                  />
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                    <Input
+                      value={studentSearchQuery}
+                      onChange={(event) => setStudentSearchQuery(event.target.value)}
+                      placeholder="Search students..."
+                      className="h-11 rounded-xl border-neutral-200 bg-white pl-9"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <select
+                      className="h-11 min-w-[170px] rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none transition focus:border-blue-500"
+                      value={branchFilter}
+                      onChange={(event) => setBranchFilter(event.target.value)}
+                      aria-label="Filter by branch"
+                    >
+                      <option value="all">All Branches</option>
+                      {BRANCHES.map((branch) => (
+                        <option key={branch} value={branch}>
+                          {branch}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="h-11 min-w-[170px] rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none transition focus:border-blue-500"
+                      value={batchFilter}
+                      onChange={(event) => setBatchFilter(event.target.value)}
+                      aria-label="Filter by batch"
+                    >
+                      <option value="all">All Batches</option>
+                      {availableBatches.map((year) => (
+                        <option key={year} value={String(year)}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+                  <Badge variant="secondary" className="rounded-full border-neutral-200 bg-white text-neutral-600">
+                    {filteredStudents.length} visible
+                  </Badge>
+                  <Badge variant="secondary" className="rounded-full border-neutral-200 bg-white text-neutral-600">
+                    {selectedStudentIds.length} selected
+                  </Badge>
+                </div>
+
                 <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-16">Pick</TableHead>
                         <TableHead>Student</TableHead>
+                        <TableHead>Branch</TableHead>
+                        <TableHead>Batch</TableHead>
                         <TableHead>Enrollment No</TableHead>
                         <TableHead>Email</TableHead>
+                        <TableHead>Mobile No</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredStudents.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="py-10 text-center text-sm text-neutral-500">
+                          <TableCell colSpan={7} className="py-10 text-center text-sm text-neutral-500">
                             No students found.
                           </TableCell>
                         </TableRow>
@@ -502,9 +554,17 @@ export function SendReminderPage({ emailEnabled, whatsappEnabled, senderEmail }:
                                   onCheckedChange={(checked) => toggleStudent(student.id, checked === true)}
                                 />
                               </TableCell>
-                              <TableCell className="font-medium text-neutral-900">{student.name}</TableCell>
+                              <TableCell>
+                                <div className="space-y-0.5">
+                                  <div className="font-medium text-neutral-900">{student.name}</div>
+                                  <div className="text-xs text-neutral-500">{student.email || "No email added"}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>{student.branch || "Pending"}</TableCell>
+                              <TableCell>{student.batch_year}</TableCell>
                               <TableCell>{student.prn ?? "Pending"}</TableCell>
                               <TableCell>{student.email || "Not available"}</TableCell>
+                              <TableCell>{student.phone || "Not available"}</TableCell>
                             </TableRow>
                           );
                         })

@@ -94,7 +94,7 @@ export function BulkUploadModal({ open, onOpenChange, onImported }: BulkUploadMo
   };
 
   const handleTemplateDownload = () => {
-    downloadCsv("student_upload_template.csv", getStudentTemplateCsv());
+    downloadCsv("student_reference_sheet.csv", getStudentTemplateCsv());
   };
 
   const parseCsvFile = useCallback(async (file: File) => {
@@ -321,19 +321,31 @@ export function BulkUploadModal({ open, onOpenChange, onImported }: BulkUploadMo
   return (
     <Dialog open={open} onOpenChange={handleCloseChange}>
       <DialogContent className="max-w-5xl">
-        <DialogHeader>
-          <DialogTitle>Bulk Upload Students</DialogTitle>
-          <DialogDescription>
-            Upload a CSV file, validate rows, and import student accounts in one step.
+          <DialogHeader>
+            <DialogTitle>Bulk Upload Students</DialogTitle>
+            <DialogDescription>
+            Upload a CSV reference sheet, validate every row, and import student accounts in one step. Leave the mobile column blank if you want PlacePro to auto-assign a 10-digit number.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-4 text-sm text-blue-900">
+            <p className="font-medium">Reference sheet format</p>
+            <p className="mt-1 text-xs leading-5 text-blue-800">
+              Required columns: <span className="font-semibold">name</span>, <span className="font-semibold">email</span>,{" "}
+              <span className="font-semibold">enrollment_no</span>, <span className="font-semibold">mobile</span>,{" "}
+              <span className="font-semibold">branch</span>, <span className="font-semibold">batch_year</span>.
+            </p>
+            <p className="mt-2 text-xs leading-5 text-blue-800">
+              If <span className="font-semibold">mobile</span> is blank, PlacePro will assign a valid 10-digit number automatically. If provided, it must be a valid 10-digit number.
+            </p>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-neutral-600">Use the template format for best results.</div>
+            <div className="text-sm text-neutral-600">Use the reference sheet format for best results.</div>
             <Button type="button" variant="outline" onClick={handleTemplateDownload}>
               <Download className="mr-2 h-4 w-4" />
-              Download CSV Template
+              Download Reference Sheet
             </Button>
           </div>
 

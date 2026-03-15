@@ -29,7 +29,7 @@ const TEMPLATE_SAMPLE_ROWS: Array<Record<StudentTemplateColumn, CsvSerializable>
     name: "Kyra Iyer",
     email: "student10@placepro.in",
     enrollment_no: "ADT23SOCB0010",
-    mobile: "9876543210",
+    mobile: "",
     branch: "CSE",
     batch_year: 2027
   },

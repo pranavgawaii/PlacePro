@@ -30,14 +30,16 @@ export function StudentPreviewTable({ rows }: StudentPreviewTableProps) {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Enrollment</TableHead>
+            <TableHead>Mobile</TableHead>
             <TableHead>Branch</TableHead>
+            <TableHead>Batch</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-sm text-neutral-500">
+              <TableCell colSpan={8} className="py-8 text-center text-sm text-neutral-500">
                 Upload a CSV file to preview rows.
               </TableCell>
             </TableRow>
@@ -48,7 +50,9 @@ export function StudentPreviewTable({ rows }: StudentPreviewTableProps) {
                 <TableCell className="text-sm">{row.name}</TableCell>
                 <TableCell className="text-sm">{row.email}</TableCell>
                 <TableCell className="font-mono text-sm">{row.enrollment_no}</TableCell>
+                <TableCell className="font-mono text-sm">{row.mobile}</TableCell>
                 <TableCell className="text-sm">{row.branch}</TableCell>
+                <TableCell className="text-sm">{row.batch_year}</TableCell>
                 <TableCell>
                   {row.valid ? (
                     <Badge variant="success" className="inline-flex items-center gap-1">

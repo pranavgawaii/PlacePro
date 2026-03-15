@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle,
   FileDown,
-  FileText,
   FileCheck,
   MoreHorizontal,
   Search,
@@ -15,12 +15,11 @@ import {
   UserX
 } from "lucide-react";
 import { toast } from "sonner";
-import { useRef } from "react";
 import { ImageCropper } from "@/components/ui/image-cropper";
-import { BRANCHES, DOC_TYPES } from "@/lib/constants";
+import { BRANCHES } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { downloadCsv } from "@/lib/utils";
-import { Branch, Database, DocType } from "@/types/database.types";
+import { Branch, Database } from "@/types/database.types";
 import { AddStudentModal } from "@/components/admin/students/AddStudentModal";
 import { BulkUploadModal } from "@/components/admin/students/BulkUploadModal";
 import { Badge } from "@/components/ui/badge";
@@ -53,18 +52,9 @@ type ApplicationRow = Database["public"]["Tables"]["applications"]["Row"];
 
 const PAGE_SIZE = 15;
 
-function uniqueDocs(docs: DocumentRow[]) {
-  const map = new Map<DocType, DocumentRow>();
-  docs.forEach((doc) => {
-    if (DOC_TYPES.includes(doc.doc_type as DocType)) {
-      map.set(doc.doc_type, doc);
-    }
-  });
-  return map;
-}
-
 export function StudentsTable() {
   const supabase = createClient();
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -78,7 +68,6 @@ export function StudentsTable() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
 
-  const [detailStudentId, setDetailStudentId] = useState<string | null>(null);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -256,9 +245,6 @@ export function StudentsTable() {
     downloadCsv("students-export.csv", csv);
     toast.success(`Exported ${selectedRows.length} students`);
   };
-
-  const detailRow = useMemo(() => details.find((row) => row.student.id === detailStudentId) ?? null, [details, detailStudentId]);
-
   const handleImported = () => {
     setSelectedStudentIds(new Set());
     void fetchAll();
@@ -456,8 +442,6 @@ export function StudentsTable() {
             <TableBody>
               {currentRows.length > 0 ? (
                 currentRows.map((row) => {
-                  const docsMap = uniqueDocs(row.docs);
-                  const requiredDocsCount = DOC_TYPES.filter((docType) => docsMap.has(docType)).length;
                   const isPlaced = row.apps.some((application) => application.status === "selected");
                   const activeApps = row.apps.filter((application) =>
                     ["applied", "shortlisted", "interview"].includes(application.status)
@@ -561,7 +545,7 @@ export function StudentsTable() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setDetailStudentId(row.student.id)}>View</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push(`/admin/students/${row.student.id}`)}>View</DropdownMenuItem>
                             {isSuperAdmin && (
                               <>
                                 <DropdownMenuSeparator />
@@ -621,18 +605,6 @@ export function StudentsTable() {
           </div>
         </div>
       </div>
-
-      <Dialog open={Boolean(detailStudentId)} onOpenChange={(nextOpen) => !nextOpen && setDetailStudentId(null)}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Student Details</DialogTitle>
-            <DialogDescription>Detailed view for {detailRow?.student.name}</DialogDescription>
-          </DialogHeader>
-          <div className="rounded border border-neutral-200 bg-neutral-50 p-4 text-center text-sm text-neutral-500">
-            Full student profile view (documents, resumes, applications) stays available in this panel.
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Rename Student Dialog */}
       <Dialog

@@ -11,11 +11,13 @@ const enrollmentSchema = z
   .max(20, "Enrollment number must be 20 characters or fewer")
   .regex(/^[A-Z0-9]+$/, "Enrollment number can contain only letters and numbers");
 
-const mobileSchema = z
-  .string({ required_error: "Mobile number is required" })
-  .trim()
-  .regex(/^\d{10}$/, "Must be exactly 10 digits")
-  .regex(/^[6-9]\d{9}$/, "Must start with 6, 7, 8, or 9");
+const mobileSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim() : ""),
+  z
+    .string()
+    .refine((value) => value === "" || /^\d{10}$/.test(value), "Must be exactly 10 digits")
+    .refine((value) => value === "" || /^[6-9]\d{9}$/.test(value), "Must start with 6, 7, 8, or 9")
+);
 
 export const studentSchema = z.object({
   name: z
