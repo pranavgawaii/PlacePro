@@ -542,7 +542,7 @@ export function SeatAllocationPage() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 pb-10">
       <CreateSeatSessionDialog
         open={createDialogOpen}
         sourceMode={createSourceMode}
@@ -556,46 +556,65 @@ export function SeatAllocationPage() {
         onCreate={handleCreateSession}
       />
 
-      <div className="rounded-2xl card-border bg-white p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">Seat Allocation</h1>
-            <p className="mt-1 text-sm text-neutral-600">
-              Build named drafts, fill seats across labs, export lab-wise or full lists, and publish one live session for students.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => void refreshBaseData()} disabled={refreshing}>
-              <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-              Refresh
-            </Button>
-            {viewMode === "editor" ? (
-              <Button variant="outline" onClick={handleBackToGallery}>
-                <ArrowLeft className="h-4 w-4" />
-                Back to Gallery
+      <div className="relative overflow-hidden rounded-[32px] border border-neutral-200 bg-white px-5 py-6 shadow-sm sm:px-8">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300 to-transparent" />
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
+          <div className="space-y-4">
+            <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-700">
+              Seat Studio
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Seat Allocation Control</h1>
+              <p className="max-w-3xl text-sm leading-6 text-neutral-600">
+                Build premium allocation drafts, review candidate readiness, map seats across labs, and publish one final live session for students.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" className="h-11 rounded-xl border-neutral-200 px-4" onClick={() => void refreshBaseData()} disabled={refreshing}>
+                <RefreshCw className={refreshing ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
+                Refresh data
               </Button>
-            ) : null}
-            <Button onClick={() => setCreateDialogOpen(true)}>Create Allocation</Button>
+              {viewMode === "editor" ? (
+                <Button variant="outline" className="h-11 rounded-xl border-neutral-200 px-4" onClick={handleBackToGallery}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to gallery
+                </Button>
+              ) : null}
+              <Button className="h-11 rounded-xl px-5" onClick={() => setCreateDialogOpen(true)}>
+                Create Allocation
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Sessions</p>
-            <p className="mt-2 text-xl font-semibold text-neutral-900">{sessions.length}</p>
-          </div>
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Published</p>
-            <p className="mt-2 text-xl font-semibold text-neutral-900">{totalPublished}</p>
-          </div>
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Ready Drafts</p>
-            <p className="mt-2 text-xl font-semibold text-neutral-900">{readyDrafts}</p>
-          </div>
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Candidates</p>
-            <p className="mt-2 text-xl font-semibold text-neutral-900">{totalCandidates}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                label: "Active Sessions",
+                value: sessions.length,
+                detail: `${readyDrafts} ready to publish`
+              },
+              {
+                label: "Published Live",
+                value: totalPublished,
+                detail: totalPublished > 0 ? "One live session maximum" : "No student-visible session yet"
+              },
+              {
+                label: "Candidate Pool",
+                value: totalCandidates,
+                detail: `${sessions.reduce((sum, session) => sum + session.stats.matched_candidates, 0)} matched in drafts`
+              },
+              {
+                label: "Lab Network",
+                value: labs.length,
+                detail: `${labs.reduce((sum, lab) => sum + lab.total_seats, 0)} total seats available`
+              }
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-neutral-200 bg-neutral-50/70 px-4 py-4">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">{stat.label}</div>
+                <div className="mt-3 text-2xl font-semibold text-neutral-950">{stat.value}</div>
+                <div className="mt-1 text-sm text-neutral-500">{stat.detail}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -617,61 +636,93 @@ export function SeatAllocationPage() {
         />
       ) : activeEditorSession ? (
         <div className="space-y-6">
-          <section className="rounded-2xl card-border bg-white p-5 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
+          <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 flex-1 space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={activeEditorSession.is_published ? "info" : "outline"}>
+                  <Badge variant={activeEditorSession.is_published ? "info" : "outline"} className="rounded-full px-3 py-1">
                     {activeEditorSession.is_published ? "Published" : activeEditorSession.status === "ready" ? "Ready Draft" : "Draft"}
                   </Badge>
-                  <Badge variant="outline" className="capitalize">
+                  <Badge variant="outline" className="rounded-full px-3 py-1 capitalize">
                     {activeEditorSession.source_mode}
                   </Badge>
-                  <Badge variant="outline">Created {formatDateTime(activeEditorSession.created_at)}</Badge>
+                  <Badge variant="outline" className="rounded-full px-3 py-1">
+                    Created {formatDateTime(activeEditorSession.created_at)}
+                  </Badge>
                   {activeEditorSession.scheduled_at ? (
-                    <Badge variant="outline">Scheduled {formatDateTime(activeEditorSession.scheduled_at)}</Badge>
+                    <Badge variant="outline" className="rounded-full px-3 py-1">
+                      Scheduled {formatDateTime(activeEditorSession.scheduled_at)}
+                    </Badge>
                   ) : null}
                 </div>
-                <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_240px_auto]">
-                  <Input
-                    value={titleDraft}
-                    onChange={(event) => setTitleDraft(event.target.value)}
-                    disabled={activeEditorSession.is_published || savingTitle}
-                    className="h-11 text-base font-semibold"
-                    placeholder="Allocation title"
-                  />
-                  <Input
-                    type="datetime-local"
-                    value={scheduledAtDraft}
-                    onChange={(event) => setScheduledAtDraft(event.target.value)}
-                    disabled={activeEditorSession.is_published || savingTitle}
-                    className="h-11"
-                  />
-                  {activeEditorSession.is_published ? (
-                    <Button variant="outline" onClick={() => void handleCreateRevision(activeEditorSession.id)}>
-                      Create Revision
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      onClick={() => void handleSaveTitle()}
-                      disabled={
-                        savingTitle ||
-                        (titleDraft.trim() === activeEditorSession.title &&
-                          scheduledAtDraft === toDatetimeLocalValue(activeEditorSession.scheduled_at))
-                      }
-                    >
-                      {savingTitle ? "Saving..." : "Save Details"}
-                    </Button>
-                  )}
+
+                <div className="space-y-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">Allocation Workspace</div>
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_250px_auto]">
+                    <Input
+                      value={titleDraft}
+                      onChange={(event) => setTitleDraft(event.target.value)}
+                      disabled={activeEditorSession.is_published || savingTitle}
+                      className="h-12 rounded-xl text-base font-semibold"
+                      placeholder="Allocation title"
+                    />
+                    <Input
+                      type="datetime-local"
+                      value={scheduledAtDraft}
+                      onChange={(event) => setScheduledAtDraft(event.target.value)}
+                      disabled={activeEditorSession.is_published || savingTitle}
+                      className="h-12 rounded-xl"
+                    />
+                    {activeEditorSession.is_published ? (
+                      <Button className="h-12 rounded-xl px-5" variant="outline" onClick={() => void handleCreateRevision(activeEditorSession.id)}>
+                        Create Revision
+                      </Button>
+                    ) : (
+                      <Button
+                        className="h-12 rounded-xl px-5"
+                        variant="outline"
+                        onClick={() => void handleSaveTitle()}
+                        disabled={
+                          savingTitle ||
+                          (titleDraft.trim() === activeEditorSession.title &&
+                            scheduledAtDraft === toDatetimeLocalValue(activeEditorSession.scheduled_at))
+                        }
+                      >
+                        {savingTitle ? "Saving..." : "Save Details"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <p className="mt-3 text-sm text-neutral-600">
+
+                <p className="max-w-4xl text-sm leading-6 text-neutral-600">
                   {activeEditorSession.is_published
                     ? "Published sessions stay frozen for students. Create a revision draft to make changes while keeping this live version intact."
                     : activeEditorSession.source_mode === "direct"
-                      ? "This direct draft pulls candidates from the real student database and stays fully editable until you publish."
-                      : "This upload draft matches candidates by Enrollment No and stays editable until every unmatched, duplicate, and overflow row is resolved."}
+                      ? "This direct draft pulls candidates from the real student database and remains editable until you publish."
+                      : "This upload draft matches candidates by Enrollment No and remains editable until every unmatched, duplicate, and overflow row is resolved."}
                 </p>
+              </div>
+
+              <div className="grid min-w-[260px] gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                {[
+                  {
+                    label: "Candidates",
+                    value: sessionDetails?.stats.total_candidates ?? 0
+                  },
+                  {
+                    label: "Assigned",
+                    value: sessionDetails?.stats.assigned_candidates ?? 0
+                  },
+                  {
+                    label: "Overflow",
+                    value: sessionDetails?.stats.overflow_candidates ?? 0
+                  }
+                ].map((stat) => (
+                  <div key={stat.label} className="rounded-2xl border border-neutral-200 bg-neutral-50/70 px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{stat.label}</div>
+                    <div className="mt-2 text-xl font-semibold text-neutral-950">{stat.value}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
@@ -747,22 +798,22 @@ export function SeatAllocationPage() {
               />
 
               {sessionDetails ? (
-                <section className="rounded-2xl card-border bg-white p-5">
+                <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-base font-semibold text-neutral-900">Lab occupancy</h3>
-                      <p className="mt-1 text-sm text-neutral-600">Live distribution for the current session.</p>
+                      <h3 className="text-base font-semibold text-neutral-900">Lab Occupancy</h3>
+                      <p className="mt-1 text-sm text-neutral-600">Live distribution and fill-rate across all configured labs.</p>
                     </div>
-                    <Badge variant="outline">{sessionDetails.lab_summary.length} labs</Badge>
+                    <Badge variant="outline" className="rounded-full px-3 py-1">{sessionDetails.lab_summary.length} labs</Badge>
                   </div>
                   <div className="mt-4 space-y-3">
                     {sessionDetails.lab_summary.length === 0 ? (
-                      <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-4 text-sm text-neutral-600">
+                      <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4 text-sm text-neutral-600">
                         No assignments yet. Run auto allocation or edit seats manually to populate lab occupancy.
                       </div>
                     ) : (
                       sessionDetails.lab_summary.map((summary) => (
-                        <div key={summary.lab_id} className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+                        <div key={summary.lab_id} className="rounded-2xl border border-neutral-200 bg-neutral-50/70 px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               <p className="font-semibold text-neutral-900">{summary.lab_name}</p>

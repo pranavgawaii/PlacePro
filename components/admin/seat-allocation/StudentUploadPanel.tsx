@@ -244,35 +244,40 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
   };
 
   return (
-    <section className="rounded-lg card-border bg-white p-5 space-y-4">
+    <section className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm">
+      <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400" />
+      <div className="space-y-5 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Upload Candidate List</h3>
-          <p className="text-sm text-neutral-600">
+          <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+            File Intake
+          </span>
+          <h3 className="mt-4 text-xl font-semibold tracking-tight text-neutral-950">Upload Candidate List</h3>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
             Import any candidate list from Excel, CSV, or PDF using Name, Enrollment No, and Branch. Existing students are linked automatically when available, but database matching is optional.
           </p>
         </div>
-        <Button variant="outline" onClick={() => void handleTemplateDownload()} disabled={downloadingTemplate}>
+        <Button className="h-11 rounded-2xl px-5" variant="outline" onClick={() => void handleTemplateDownload()} disabled={downloadingTemplate}>
           <Download className="h-4 w-4" />
           {downloadingTemplate ? "Preparing..." : "Download Template"}
         </Button>
       </div>
 
-      <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4">
+      <div className="rounded-[24px] border border-dashed border-neutral-300 bg-neutral-50/80 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Label htmlFor="seat-upload-file" className="text-sm font-medium text-neutral-700">
+            <Label htmlFor="seat-upload-file" className="text-sm font-semibold text-neutral-800">
               Upload file
             </Label>
             <p className="mt-1 text-xs text-neutral-500">Accepted: .xlsx, .xls, .csv, .pdf</p>
           </div>
         {editableUploadSession ? (
-          <Badge variant="outline" className="gap-1 border-blue-200 bg-blue-50 text-blue-700">
+          <Badge variant="outline" className="gap-1 rounded-full border-blue-200 bg-blue-50 px-3 py-1.5 text-blue-700">
               <FileSpreadsheet className="h-3.5 w-3.5" />
               Upload draft ready
             </Badge>
           ) : (
-            <Badge variant="outline">Upload draft required</Badge>
+            <Badge variant="outline" className="rounded-full px-3 py-1.5">Upload draft required</Badge>
           )}
         </div>
         <Input
@@ -282,13 +287,13 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
           onChange={(event) => {
             void handleFileChange(event.target.files?.[0] ?? null);
           }}
-          className="mt-3"
+          className="mt-4 h-12 rounded-2xl border-neutral-200 bg-white"
           disabled={submitting}
         />
       </div>
 
       {tables.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Detected tables</p>
           <div className="grid gap-2 md:grid-cols-2">
             {tables.map((table) => {
@@ -301,7 +306,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
                     void chooseTable(table);
                   }}
                   className={[
-                    "rounded-md border px-3 py-2 text-left transition",
+                    "rounded-2xl border px-4 py-3 text-left transition",
                     isActive
                       ? "border-blue-300 bg-blue-50 text-blue-800"
                       : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
@@ -319,11 +324,11 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
       ) : null}
 
       {headers.length > 0 ? (
-        <div className="rounded-lg border border-neutral-200 p-3">
+        <div className="rounded-[24px] border border-neutral-200 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Column mapping</p>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="map-prn">Enrollment No column</Label>
+            <div className="space-y-2">
+              <Label htmlFor="map-prn" className="text-sm font-semibold text-neutral-900">Enrollment No column</Label>
               <select
                 id="map-prn"
                 value={mapping.prnKey ?? ""}
@@ -332,7 +337,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
                   setMapping(next);
                   void applyPreview(rawRows, next);
                 }}
-                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-blue-300"
+                className="h-11 w-full rounded-2xl border border-neutral-200 bg-white px-4 text-sm outline-none transition focus:border-blue-300"
               >
                 <option value="">Select column</option>
                 {headers.map((header) => (
@@ -343,8 +348,8 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
               </select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="map-name">Name column (optional)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="map-name" className="text-sm font-semibold text-neutral-900">Name column (optional)</Label>
               <select
                 id="map-name"
                 value={mapping.nameKey ?? ""}
@@ -353,7 +358,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
                   setMapping(next);
                   void applyPreview(rawRows, next);
                 }}
-                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-blue-300"
+                className="h-11 w-full rounded-2xl border border-neutral-200 bg-white px-4 text-sm outline-none transition focus:border-blue-300"
               >
                 <option value="">None</option>
                 {headers.map((header) => (
@@ -364,8 +369,8 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
               </select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="map-branch">Branch column (optional)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="map-branch" className="text-sm font-semibold text-neutral-900">Branch column (optional)</Label>
               <select
                 id="map-branch"
                 value={mapping.branchKey ?? ""}
@@ -374,7 +379,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
                   setMapping(next);
                   void applyPreview(rawRows, next);
                 }}
-                className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-blue-300"
+                className="h-11 w-full rounded-2xl border border-neutral-200 bg-white px-4 text-sm outline-none transition focus:border-blue-300"
               >
                 <option value="">None</option>
                 {headers.map((header) => (
@@ -388,33 +393,33 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 space-y-3">
+      <div className="rounded-[24px] border border-neutral-200 bg-neutral-50/80 p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <UploadCloud className="h-4 w-4 text-blue-600" />
             <p className="text-sm font-medium text-neutral-900">{summaryText}</p>
           </div>
-          <Button onClick={() => void handleImport()} disabled={submitting || previewRows.length === 0}>
+          <Button className="h-11 rounded-2xl px-5" onClick={() => void handleImport()} disabled={submitting || previewRows.length === 0}>
             {submitting ? "Importing..." : "Import Into Draft"}
           </Button>
         </div>
 
         {previewRows.length > 0 ? (
-          <div className="overflow-hidden rounded-md border border-neutral-200 bg-white">
+          <div className="overflow-hidden rounded-[20px] border border-neutral-200 bg-white">
             <table className="w-full text-sm">
               <thead className="bg-neutral-50 text-neutral-600">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Enrollment No</th>
-                  <th className="px-3 py-2 text-left font-semibold">Name</th>
-                  <th className="px-3 py-2 text-left font-semibold">Branch</th>
+                  <th className="px-4 py-3 text-left font-semibold">Enrollment No</th>
+                  <th className="px-4 py-3 text-left font-semibold">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold">Branch</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200">
                 {previewRows.slice(0, 8).map((row) => (
                   <tr key={`${row.prn}-${row.row_index}`}>
-                    <td className="px-3 py-2.5 font-medium text-neutral-900">{row.prn}</td>
-                    <td className="px-3 py-2.5 text-neutral-700">{row.name ?? "—"}</td>
-                    <td className="px-3 py-2.5 text-neutral-700">{row.branch ?? "—"}</td>
+                    <td className="px-4 py-3 font-medium text-neutral-900">{row.prn}</td>
+                    <td className="px-4 py-3 text-neutral-700">{row.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-neutral-700">{row.branch ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -423,7 +428,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
         ) : null}
 
         {invalidRows.length > 0 ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm font-semibold text-amber-800">Invalid rows: {invalidRows.length}</p>
             <ul className="mt-2 space-y-1 text-sm text-amber-800">
               {invalidRows.slice(0, 5).map((row) => (
@@ -437,6 +442,7 @@ export function StudentUploadPanel({ session, onImportRows, onImported, onDownlo
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
     </section>
   );
 }

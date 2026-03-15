@@ -112,16 +112,21 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
   };
 
   return (
-    <section className="rounded-2xl card-border bg-white p-5 space-y-5">
+    <section className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm">
+      <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400" />
+      <div className="space-y-5 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Preview & Export</h3>
-          <p className="text-sm text-neutral-600">
+          <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+            Document Studio
+          </span>
+          <h3 className="mt-4 text-xl font-semibold tracking-tight text-neutral-950">Preview & Export</h3>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
             Preview seating and attendance layouts, then export the final list lab-wise or as one full consolidated sheet.
           </p>
         </div>
         {session ? (
-          <Badge variant="outline" className="capitalize">
+          <Badge variant="outline" className="rounded-full capitalize">
             {session.source_mode} • {session.is_published ? "Published" : session.status}
           </Badge>
         ) : null}
@@ -130,11 +135,11 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">
           <Tabs value={previewKind} onValueChange={(value) => setPreviewKind(value as SeatDocumentKind)}>
-            <TabsList className="grid w-full grid-cols-2 bg-neutral-100 p-1">
-              <TabsTrigger value="seating" className="h-10" activeIndicatorClassName="bg-white shadow-sm">
+            <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-neutral-100 p-1.5">
+              <TabsTrigger value="seating" className="h-11 rounded-xl" activeIndicatorClassName="rounded-xl bg-white shadow-sm">
                 Seating Preview
               </TabsTrigger>
-              <TabsTrigger value="attendance" className="h-10" activeIndicatorClassName="bg-white shadow-sm">
+              <TabsTrigger value="attendance" className="h-11 rounded-xl" activeIndicatorClassName="rounded-xl bg-white shadow-sm">
                 Attendance Preview
               </TabsTrigger>
             </TabsList>
@@ -144,20 +149,20 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
           </Tabs>
 
           {previewLoading ? (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-8 text-sm text-neutral-600">
+            <div className="rounded-[24px] border border-neutral-200 bg-neutral-50 px-4 py-8 text-sm text-neutral-600">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Preparing document preview...
               </div>
             </div>
           ) : previewError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{previewError}</div>
+            <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">{previewError}</div>
           ) : !session ? (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-8 text-sm text-neutral-600">
+            <div className="rounded-[24px] border border-neutral-200 bg-neutral-50 px-4 py-8 text-sm text-neutral-600">
               Select a seat session to inspect the preview and export options.
             </div>
           ) : assignedCount === 0 || selectedGroups.length === 0 ? (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-8 text-sm text-neutral-600">
+            <div className="rounded-[24px] border border-neutral-200 bg-neutral-50 px-4 py-8 text-sm text-neutral-600">
               Run or edit assignments first. Previews appear once this session has assigned seats.
             </div>
           ) : (
@@ -167,7 +172,7 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
                 const hiddenCount = Math.max(0, group.rows.length - previewRows.length);
 
                 return (
-                  <div key={`${previewKind}-${group.key}`} className="overflow-hidden rounded-xl border border-neutral-200">
+                  <div key={`${previewKind}-${group.key}`} className="overflow-hidden rounded-[24px] border border-neutral-200">
                     <div className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-neutral-50 px-4 py-3">
                       <div>
                         <p className="text-sm font-semibold text-neutral-900">{group.title}</p>
@@ -175,7 +180,7 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
                           {group.rows.length} students • {exportMode === "per_lab" ? "Lab-wise grouping" : "Full consolidated order"}
                         </p>
                       </div>
-                      <Badge variant="outline">{previewKind === "seating" ? "Seating" : "Attendance"}</Badge>
+                      <Badge variant="outline" className="rounded-full">{previewKind === "seating" ? "Seating" : "Attendance"}</Badge>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -221,7 +226,7 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
           )}
         </div>
 
-        <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+        <div className="space-y-4 rounded-[24px] border border-neutral-200 bg-neutral-50/80 p-5">
           <div>
             <h4 className="text-sm font-semibold text-neutral-900">Export controls</h4>
             <p className="mt-1 text-xs text-neutral-500">
@@ -232,12 +237,12 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Export mode</p>
             <Tabs value={exportMode} onValueChange={(value) => setExportMode(value as SeatExportMode)}>
-              <TabsList className="grid w-full grid-cols-2 bg-white p-1">
-                <TabsTrigger value="per_lab" className="h-10" activeIndicatorClassName="bg-neutral-100 shadow-none">
+              <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-white p-1.5">
+                <TabsTrigger value="per_lab" className="h-11 rounded-xl" activeIndicatorClassName="rounded-xl bg-neutral-100 shadow-none">
                   <Presentation className="h-4 w-4" />
                   Lab-wise
                 </TabsTrigger>
-                <TabsTrigger value="full_list" className="h-10" activeIndicatorClassName="bg-neutral-100 shadow-none">
+                <TabsTrigger value="full_list" className="h-11 rounded-xl" activeIndicatorClassName="rounded-xl bg-neutral-100 shadow-none">
                   <Rows3 className="h-4 w-4" />
                   Full list
                 </TabsTrigger>
@@ -251,7 +256,7 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
               <button
                 type="button"
                 className={[
-                  "flex items-center justify-between rounded-xl border px-3 py-3 text-sm transition-colors",
+                  "flex items-center justify-between rounded-2xl border px-3 py-3 text-sm transition-colors",
                   generatePdf ? "border-blue-300 bg-blue-50 text-blue-800" : "border-neutral-200 bg-white text-neutral-700"
                 ].join(" ")}
                 onClick={() => setGeneratePdf((current) => !current)}
@@ -264,7 +269,7 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
               <button
                 type="button"
                 className={[
-                  "flex items-center justify-between rounded-xl border px-3 py-3 text-sm transition-colors",
+                  "flex items-center justify-between rounded-2xl border px-3 py-3 text-sm transition-colors",
                   generateXlsx ? "border-blue-300 bg-blue-50 text-blue-800" : "border-neutral-200 bg-white text-neutral-700"
                 ].join(" ")}
                 onClick={() => setGenerateXlsx((current) => !current)}
@@ -280,13 +285,13 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
           <Button
             onClick={() => void handleGenerate()}
             disabled={!session || assignedCount === 0 || generating || (!generatePdf && !generateXlsx)}
-            className="w-full"
+            className="h-11 w-full rounded-2xl"
           >
             {generating ? "Generating..." : "Generate Documents"}
           </Button>
 
           {result ? (
-            <div className="space-y-2 rounded-xl border border-neutral-200 bg-white p-3">
+            <div className="space-y-2 rounded-[20px] border border-neutral-200 bg-white p-4">
               <p className="text-sm font-semibold text-neutral-900">Downloads ready</p>
               <div className="flex flex-wrap gap-2">
                 {result.seat_pdf_url ? (
@@ -308,6 +313,7 @@ export function SeatDocumentPreviewPanel({ session, assignedCount }: SeatDocumen
             </div>
           ) : null}
         </div>
+      </div>
       </div>
     </section>
   );

@@ -121,15 +121,20 @@ export function StudentMatchPanel({
   };
 
   return (
-    <section className="rounded-lg card-border bg-white p-5 space-y-4">
+    <section className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm">
+      <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400" />
+      <div className="space-y-5 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Candidate Review</h3>
-          <p className="text-sm text-neutral-600">
+          <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+            Review Queue
+          </span>
+          <h3 className="mt-4 text-xl font-semibold tracking-tight text-neutral-950">Candidate Review</h3>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
             Review imported and selected candidates, optionally link them to existing student accounts, and clear duplicate or overflow rows before publish.
           </p>
         </div>
-        <Badge variant="outline">Active rows {candidates.length}</Badge>
+        <Badge variant="outline" className="rounded-full px-3 py-1.5">Active rows {candidates.length}</Badge>
       </div>
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)]">
@@ -139,13 +144,13 @@ export function StudentMatchPanel({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search Enrollment No, name, or issue"
-            className="pl-9"
+            className="h-12 rounded-2xl border-neutral-200 bg-white pl-9"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value as "all" | CandidateMatchStatus)}
-          className="h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-300"
+          className="h-12 rounded-2xl border border-neutral-200 bg-white px-4 text-sm outline-none transition focus:border-blue-300"
         >
           <option value="all">All statuses</option>
           <option value="matched">Matched</option>
@@ -157,23 +162,24 @@ export function StudentMatchPanel({
           value={studentQuery}
           onChange={(event) => setStudentQuery(event.target.value)}
           placeholder="Filter student options for unmatched rows"
+          className="h-12 rounded-2xl border-neutral-200 bg-white"
         />
       </div>
 
-      <div className="overflow-hidden rounded-md border border-neutral-200">
+      <div className="overflow-hidden rounded-[24px] border border-neutral-200">
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
-              <th className="px-3 py-2 text-left font-semibold">Candidate</th>
-              <th className="px-3 py-2 text-left font-semibold">Status</th>
-              <th className="px-3 py-2 text-left font-semibold">Resolve</th>
-              <th className="px-3 py-2 text-right font-semibold">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold">Candidate</th>
+              <th className="px-4 py-3 text-left font-semibold">Status</th>
+              <th className="px-4 py-3 text-left font-semibold">Resolve</th>
+              <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 bg-white">
             {filteredCandidates.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={4} className="px-4 py-10 text-center text-sm text-neutral-500">
                   No candidate rows match the current filters.
                 </td>
               </tr>
@@ -184,23 +190,26 @@ export function StudentMatchPanel({
                 const canRemove = true;
 
                 return (
-                  <tr key={candidate.id}>
-                    <td className="px-3 py-2.5 align-top">
+                  <tr key={candidate.id} className="hover:bg-neutral-50/70">
+                    <td className="px-4 py-3 align-top">
                       <p className="font-medium text-neutral-900">{candidate.name_snapshot ?? candidate.student_name ?? "Student row"}</p>
                       <p className="text-xs text-neutral-500">{candidate.prn}</p>
                       <p className="text-xs text-neutral-500">{candidate.branch_snapshot ?? candidate.student_branch ?? "—"}</p>
                       {candidate.error_message ? <p className="mt-1 text-xs text-red-600">{candidate.error_message}</p> : null}
                     </td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className="px-4 py-3 align-top">
                       <Badge
                         variant={candidate.match_status === "matched" ? "success" : candidate.match_status === "unmatched" ? "outline" : "secondary"}
-                        className={candidate.match_status === "overflow" ? "border-amber-200 bg-amber-50 text-amber-700" : undefined}
+                        className={[
+                          "rounded-full",
+                          candidate.match_status === "overflow" ? "border-amber-200 bg-amber-50 text-amber-700" : ""
+                        ].join(" ")}
                       >
                         {statusLabel[candidate.match_status]}
                       </Badge>
                       {candidate.student_name ? <p className="mt-2 text-xs text-neutral-500">Linked: {candidate.student_name}</p> : null}
                     </td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className="px-4 py-3 align-top">
                       {canResolve ? (
                         <div className="space-y-2">
                           <select
@@ -211,7 +220,7 @@ export function StudentMatchPanel({
                                 [candidate.id]: event.target.value
                               }));
                             }}
-                            className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-300"
+                            className="h-11 w-full rounded-2xl border border-neutral-200 bg-white px-4 text-sm outline-none transition focus:border-blue-300"
                             disabled={!editableSession || busy}
                           >
                             <option value="">Choose student</option>
@@ -221,7 +230,7 @@ export function StudentMatchPanel({
                               </option>
                             ))}
                           </select>
-                          <Button size="sm" variant="outline" onClick={() => void handleResolve(candidate.id)} disabled={!editableSession || busy}>
+                          <Button size="sm" variant="outline" className="h-9 rounded-xl" onClick={() => void handleResolve(candidate.id)} disabled={!editableSession || busy}>
                             <UserCheck className="h-3.5 w-3.5" />
                             Resolve
                           </Button>
@@ -236,11 +245,11 @@ export function StudentMatchPanel({
                         </p>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 align-top text-right">
+                    <td className="px-4 py-3 align-top text-right">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        className="h-9 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                         onClick={() => void handleRemove(candidate.id)}
                         disabled={!editableSession || busy || !canRemove}
                       >
@@ -257,6 +266,7 @@ export function StudentMatchPanel({
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
     </section>
   );
 }

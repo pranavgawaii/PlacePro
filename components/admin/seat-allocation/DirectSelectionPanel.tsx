@@ -120,25 +120,30 @@ export function DirectSelectionPanel({
   };
 
   return (
-    <section className="rounded-lg card-border bg-white p-5 space-y-4">
+    <section className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm">
+      <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400" />
+      <div className="space-y-5 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Select Students</h3>
-          <p className="text-sm text-neutral-600">
+          <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+            Candidate Source
+          </span>
+          <h3 className="mt-4 text-xl font-semibold tracking-tight text-neutral-950">Select Students</h3>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
             Start from real student records, then auto-fill seats across the labs you choose.
           </p>
         </div>
         {editableDirectSession ? (
-          <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+          <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 px-3 py-1.5 text-blue-700">
             Direct draft ready
           </Badge>
         ) : (
-          <Badge variant="outline">Direct draft required</Badge>
+          <Badge variant="outline" className="rounded-full px-3 py-1.5">Direct draft required</Badge>
         )}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_140px]">
-        <div className="space-y-1.5">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_160px]">
+        <div className="space-y-2">
           <label htmlFor="seat-direct-search" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Search students
           </label>
@@ -149,13 +154,13 @@ export function DirectSelectionPanel({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by name, Enrollment No, or email"
-              className="pl-9"
+              className="h-12 rounded-2xl border-neutral-200 bg-white pl-9"
               disabled={loading || submitting}
             />
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <label htmlFor="seat-direct-branch" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Branch
           </label>
@@ -163,7 +168,7 @@ export function DirectSelectionPanel({
             id="seat-direct-branch"
             value={branchFilter}
             onChange={(event) => setBranchFilter(event.target.value)}
-            className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-300"
+            className="h-12 w-full rounded-2xl border border-neutral-200 bg-white px-4 text-sm outline-none transition focus:border-blue-300"
             disabled={loading || submitting}
           >
             <option value="all">All branches</option>
@@ -175,7 +180,7 @@ export function DirectSelectionPanel({
           </select>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <label htmlFor="seat-direct-batch" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Batch
           </label>
@@ -183,7 +188,7 @@ export function DirectSelectionPanel({
             id="seat-direct-batch"
             value={batchFilter}
             onChange={(event) => setBatchFilter(event.target.value)}
-            className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-300"
+            className="h-12 w-full rounded-2xl border border-neutral-200 bg-white px-4 text-sm outline-none transition focus:border-blue-300"
             disabled={loading || submitting}
           >
             <option value="all">All batches</option>
@@ -196,7 +201,7 @@ export function DirectSelectionPanel({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-600">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-blue-600" />
           <span>
@@ -204,26 +209,26 @@ export function DirectSelectionPanel({
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">Already in draft {activeStudentIds.size}</Badge>
-          <Badge variant="outline">Selected {selectedIds.length}</Badge>
+          <Badge variant="outline" className="rounded-full">Already in draft {activeStudentIds.size}</Badge>
+          <Badge variant="outline" className="rounded-full">Selected {selectedIds.length}</Badge>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-md border border-neutral-200">
+      <div className="overflow-hidden rounded-[24px] border border-neutral-200">
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
-              <th className="w-12 px-3 py-2 text-left font-semibold">Pick</th>
-              <th className="px-3 py-2 text-left font-semibold">Student</th>
-              <th className="px-3 py-2 text-left font-semibold">Enrollment No</th>
-              <th className="px-3 py-2 text-left font-semibold">Academic</th>
-              <th className="px-3 py-2 text-left font-semibold">Status</th>
+              <th className="w-12 px-4 py-3 text-left font-semibold">Pick</th>
+              <th className="px-4 py-3 text-left font-semibold">Student</th>
+              <th className="px-4 py-3 text-left font-semibold">Enrollment No</th>
+              <th className="px-4 py-3 text-left font-semibold">Academic</th>
+              <th className="px-4 py-3 text-left font-semibold">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 bg-white">
             {visibleStudents.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-neutral-500">
                   No students match the current filters.
                 </td>
               </tr>
@@ -231,8 +236,8 @@ export function DirectSelectionPanel({
               visibleStudents.map((student) => {
                 const alreadyAdded = activeStudentIds.has(student.id);
                 return (
-                  <tr key={student.id} className={alreadyAdded ? "bg-neutral-50/80" : ""}>
-                    <td className="px-3 py-2.5 align-top">
+                  <tr key={student.id} className={alreadyAdded ? "bg-neutral-50/80" : "hover:bg-neutral-50/70"}>
+                    <td className="px-4 py-3 align-top">
                       <Checkbox
                         checked={alreadyAdded || selectedIds.includes(student.id)}
                         disabled={alreadyAdded || loading || submitting || !editableDirectSession}
@@ -240,21 +245,25 @@ export function DirectSelectionPanel({
                         aria-label={`Select ${student.name}`}
                       />
                     </td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className="px-4 py-3 align-top">
                       <p className="font-medium text-neutral-900">{student.name}</p>
                       <p className="text-xs text-neutral-500">{student.email}</p>
                     </td>
-                    <td className="px-3 py-2.5 align-top font-medium text-neutral-900">{student.prn ?? "Enrollment pending"}</td>
-                    <td className="px-3 py-2.5 align-top text-neutral-600">
+                    <td className="px-4 py-3 align-top font-medium text-neutral-900">{student.prn ?? "Enrollment pending"}</td>
+                    <td className="px-4 py-3 align-top text-neutral-600">
                       {student.branch ?? "—"} • Batch {student.batch_year}
                     </td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className="px-4 py-3 align-top">
                       {alreadyAdded ? (
-                        <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                        <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-700">
                           In draft
                         </Badge>
+                      ) : selectedIds.includes(student.id) ? (
+                        <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+                          Selected
+                        </Badge>
                       ) : (
-                        <Badge variant="outline">Available</Badge>
+                        <Badge variant="outline" className="rounded-full">Available</Badge>
                       )}
                     </td>
                   </tr>
@@ -265,16 +274,17 @@ export function DirectSelectionPanel({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-neutral-200 bg-white p-4">
         <div className="text-sm text-neutral-500">
           {selectedVisibleCount > 0 ? `${selectedVisibleCount} visible students selected.` : "Choose students to add them into this draft session."}
         </div>
-        <Button onClick={() => void handleAdd()} disabled={!editableDirectSession || submitting || selectedIds.length === 0}>
+        <Button className="h-11 rounded-2xl px-5" onClick={() => void handleAdd()} disabled={!editableDirectSession || submitting || selectedIds.length === 0}>
           {submitting ? "Adding..." : `Add ${selectedIds.length || ""} Students`.trim()}
         </Button>
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
     </section>
   );
 }

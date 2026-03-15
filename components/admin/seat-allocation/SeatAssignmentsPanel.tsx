@@ -116,20 +116,25 @@ export function SeatAssignmentsPanel({
   };
 
   return (
-    <section className="rounded-lg card-border bg-white p-5 space-y-4">
+    <section className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm">
+      <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400" />
+      <div className="space-y-5 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-neutral-900">Assignment Studio</h3>
-          <p className="text-sm text-neutral-600">
+          <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+            Assignment Studio
+          </span>
+          <h3 className="mt-4 text-xl font-semibold tracking-tight text-neutral-950">Edit Seat Assignments</h3>
+          <p className="mt-2 text-sm leading-6 text-neutral-600">
             Auto allocation fills the layout first. You can still fine-tune labs and seat numbers before publish.
           </p>
         </div>
         {editableSession ? (
-          <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+          <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 px-3 py-1.5 text-blue-700">
             Editable draft
           </Badge>
         ) : (
-          <Badge variant="outline">Published preview</Badge>
+          <Badge variant="outline" className="rounded-full px-3 py-1.5">Published preview</Badge>
         )}
       </div>
 
@@ -139,25 +144,25 @@ export function SeatAssignmentsPanel({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by student, Enrollment No, branch, or seat"
-          className="pl-9"
+          className="h-12 rounded-2xl border-neutral-200 bg-white pl-9"
         />
       </div>
 
-      <div className="overflow-hidden rounded-md border border-neutral-200">
+      <div className="overflow-hidden rounded-[24px] border border-neutral-200">
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
-              <th className="px-3 py-2 text-left font-semibold">Student</th>
-              <th className="px-3 py-2 text-left font-semibold">Academic</th>
-              <th className="px-3 py-2 text-left font-semibold">Lab</th>
-              <th className="px-3 py-2 text-left font-semibold">Seat</th>
-              <th className="px-3 py-2 text-right font-semibold">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold">Student</th>
+              <th className="px-4 py-3 text-left font-semibold">Academic</th>
+              <th className="px-4 py-3 text-left font-semibold">Lab</th>
+              <th className="px-4 py-3 text-left font-semibold">Seat</th>
+              <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 bg-white">
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-neutral-500">
                   No matched students are ready for assignment yet.
                 </td>
               </tr>
@@ -166,17 +171,17 @@ export function SeatAssignmentsPanel({
                 const draft = getDraft(row);
                 const busy = savingStudentId === row.candidate_id;
                 return (
-                  <tr key={row.candidate_id}>
-                    <td className="px-3 py-2.5 align-top">
+                  <tr key={row.candidate_id} className="hover:bg-neutral-50/70">
+                    <td className="px-4 py-3 align-top">
                       <p className="font-medium text-neutral-900">{row.student_name}</p>
                       <p className="text-xs text-neutral-500">{row.prn}</p>
                     </td>
-                    <td className="px-3 py-2.5 align-top text-neutral-600">{row.branch ?? "—"}</td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className="px-4 py-3 align-top text-neutral-600">{row.branch ?? "—"}</td>
+                    <td className="px-4 py-3 align-top">
                         <select
                           value={draft.labId}
                           onChange={(event) => setDraft(row.candidate_id, { ...draft, labId: event.target.value })}
-                        className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-300"
+                        className="h-11 w-full rounded-2xl border border-neutral-200 bg-white px-4 text-sm outline-none transition focus:border-blue-300"
                         disabled={!editableSession || busy}
                       >
                         <option value="">Select lab</option>
@@ -187,19 +192,21 @@ export function SeatAssignmentsPanel({
                         ))}
                       </select>
                     </td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className="px-4 py-3 align-top">
                       <Input
                         value={draft.seatNumber}
                         onChange={(event) => setDraft(row.candidate_id, { ...draft, seatNumber: event.target.value.toUpperCase() })}
                         placeholder="A-01"
                         disabled={!editableSession || busy}
+                        className="h-11 rounded-2xl border-neutral-200 bg-white"
                       />
                     </td>
-                    <td className="px-3 py-2.5 align-top">
+                    <td className="px-4 py-3 align-top">
                       <div className="flex justify-end gap-2">
                         <Button
                           size="sm"
                           variant="outline"
+                          className="h-9 rounded-xl"
                           onClick={() => void handleSave(row)}
                           disabled={!editableSession || busy}
                         >
@@ -209,7 +216,7 @@ export function SeatAssignmentsPanel({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          className="h-9 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                           onClick={() => void handleClear(row)}
                           disabled={!editableSession || busy || (!row.lab_id && !row.seat_number)}
                         >
@@ -219,6 +226,7 @@ export function SeatAssignmentsPanel({
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="h-9 rounded-xl"
                           onClick={() => setDraft(row.candidate_id, { labId: row.lab_id ?? "", seatNumber: row.seat_number ?? "" })}
                           disabled={busy}
                         >
@@ -235,6 +243,7 @@ export function SeatAssignmentsPanel({
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
     </section>
   );
 }
