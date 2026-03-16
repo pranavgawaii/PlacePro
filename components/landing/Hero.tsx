@@ -38,23 +38,15 @@ export function LandingHero() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                className="relative mb-0 flex w-full max-w-md flex-col items-stretch gap-3 sm:max-w-none sm:flex-row sm:items-center"
+                className="relative mb-0 flex w-full max-w-md flex-col items-center gap-3 sm:max-w-none sm:flex-row sm:justify-center sm:items-center"
             >
-                <Link href="/signup">
-                    <button className="relative w-full rounded-none bg-black px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-600 sm:w-auto sm:text-xs">
+                <Link href="/signup" className="w-full sm:w-auto">
+                    <button className="w-full border-2 border-black bg-black px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-600 sm:w-auto sm:min-w-[210px] sm:text-xs">
                         Book a Strategy Demo
-                        <div className="absolute top-1 left-1 w-1 h-1 bg-white rounded-full"></div>
-                        <div className="absolute top-1 right-1 w-1 h-1 bg-white rounded-full"></div>
-                        <div className="absolute bottom-1 left-1 w-1 h-1 bg-white rounded-full"></div>
-                        <div className="absolute bottom-1 right-1 w-1 h-1 bg-white rounded-full"></div>
                     </button>
                 </Link>
-                <button className="relative w-full rounded-none bg-[#E5E5E5] px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-[#d4d4d4] sm:w-auto sm:text-xs">
+                <button className="w-full border-2 border-black bg-[#E5E5E5] px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-[#d4d4d4] sm:w-auto sm:min-w-[210px] sm:text-xs">
                     View 5-Minute Product Tour
-                    <div className="absolute top-1 left-1 w-1 h-1 bg-black rounded-full"></div>
-                    <div className="absolute top-1 right-1 w-1 h-1 bg-black rounded-full"></div>
-                    <div className="absolute bottom-1 left-1 w-1 h-1 bg-black rounded-full"></div>
-                    <div className="absolute bottom-1 right-1 w-1 h-1 bg-black rounded-full"></div>
                 </button>
             </motion.div>
         </div>
