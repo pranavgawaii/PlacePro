@@ -17,17 +17,17 @@ export function ComparisonTable() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="py-32 px-0 sm:px-8 bg-white border-b-2 border-black"
+            className="border-b-2 border-black bg-white px-4 py-24 sm:px-8 sm:py-32"
         >
-            <div className="max-w-[1000px] mx-auto">
+            <div className="mx-auto max-w-[1000px]">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8 }}
-                    className="text-center mb-16"
+                    className="mb-12 text-center sm:mb-16"
                 >
-                    <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-black mb-4">
+                    <h2 className="mb-4 font-serif text-3xl text-black md:text-4xl lg:text-5xl">
                         Why <span className="italic">PlacePro?</span>
                     </h2>
                     <p className="text-gray-600 text-sm font-light uppercase tracking-widest">
@@ -35,12 +35,31 @@ export function ComparisonTable() {
                     </p>
                 </motion.div>
 
+                <div className="space-y-4 md:hidden">
+                    {comparisonData.map((row, i) => (
+                        <div key={i} className="rounded-[24px] border-2 border-black bg-white p-4">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-neutral-400">Feature</p>
+                            <p className="mt-2 text-lg font-bold text-black">{row.f}</p>
+                            <div className="mt-4 space-y-3">
+                                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-3 py-3">
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">PlacePro</p>
+                                    <p className="mt-1 text-sm font-semibold text-black">{row.p}</p>
+                                </div>
+                                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3">
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">Legacy ERPs</p>
+                                    <p className="mt-1 text-sm text-neutral-700">{row.l}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
                 <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8, delay: 0.2 }}
-                    className="overflow-x-auto border-2 border-black"
+                    className="hidden overflow-x-auto border-2 border-black md:block"
                 >
                     <table className="min-w-[640px] w-full text-left border-collapse">
                         <thead>

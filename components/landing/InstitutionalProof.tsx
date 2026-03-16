@@ -19,11 +19,11 @@ export function InstitutionalProof() {
             transition={{ duration: 1 }}
             className="py-10 bg-white border-y-2 border-black relative"
         >
-            <div className="max-w-[1200px] mx-auto px-0 sm:px-8">
+            <div className="mx-auto max-w-[1200px] px-4 sm:px-8">
                 <p className="text-center text-xs font-mono font-bold text-gray-400 mb-8 uppercase tracking-[0.3em]">
                     Institutional Registry & Partners
                 </p>
-                <div className="flex flex-wrap justify-center gap-x-16 gap-y-8 opacity-100">
+                <div className="flex flex-wrap justify-center gap-x-8 gap-y-6 opacity-100 sm:gap-x-16 sm:gap-y-8">
                     {institutions.map((inst, i) => (
                         <motion.div
                             key={inst.name}
@@ -31,7 +31,7 @@ export function InstitutionalProof() {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.5, delay: i * 0.1 }}
-                            className="flex items-center gap-2 font-black text-xl text-black hover:text-blue-600 transition-colors cursor-pointer"
+                            className="flex items-center gap-2 text-base font-black text-black transition-colors cursor-pointer hover:text-blue-600 sm:text-xl"
                         >
                             <span className="material-symbols-outlined">{inst.icon}</span> {inst.name}
                         </motion.div>

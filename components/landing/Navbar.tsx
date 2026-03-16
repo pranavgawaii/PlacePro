@@ -8,10 +8,10 @@ export function LandingNavbar() {
     const navItems = ["Product", "Features", "Pricing", "Resources"];
 
     return (
-        <header className="w-full h-16 sm:h-[80px] px-0 sm:px-8 flex items-center justify-between relative z-20 bg-white border-y-2 border-black">
-            <Link href="/" className="flex items-center gap-2 group hover-logo-3d">
+        <header className="relative z-20 flex h-16 w-full items-center justify-between border-y-2 border-black bg-white px-4 sm:h-[80px] sm:px-8">
+            <Link href="/" className="group flex items-center gap-2.5 hover-logo-3d">
                 <img src="/brand/logo.png" alt="PlacePro Logo" className="w-8 h-8 object-contain" />
-                <span className="text-lg sm:text-xl font-semibold tracking-tight text-neutral-900 transition-colors group-hover:text-blue-600">PlacePro</span>
+                <span className="text-base font-semibold tracking-tight text-neutral-900 transition-colors group-hover:text-blue-600 sm:text-xl">PlacePro</span>
             </Link>
 
             <nav className="hidden md:flex gap-8 text-[15px] font-medium text-neutral-600">
@@ -47,7 +47,7 @@ export function LandingNavbar() {
                     >
                         <Menu className="h-4 w-4" />
                     </SheetTrigger>
-                    <SheetContent side="right" className="bg-white">
+                    <SheetContent side="right" className="w-[88vw] max-w-sm bg-white px-5">
                         <SheetTitle className="text-base font-semibold text-neutral-900">Explore</SheetTitle>
                         <div className="mt-6 space-y-2">
                             {navItems.map((item) => (

@@ -71,7 +71,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen w-full bg-white flex justify-center selection:bg-black selection:text-white">
-      <div className="flex w-full max-w-none sm:max-w-7xl border-x-0 sm:border-x-2 border-black relative text-black bg-white font-sans antialiased overflow-x-hidden">
+      <div className="flex w-full max-w-none sm:max-w-7xl border-x-0 sm:border-x-2 border-black relative bg-white font-sans antialiased text-black overflow-x-clip">
 
         {/* Decorative Sidebars */}
         <div className="hidden lg:block w-[64px] border-r-2 border-black dot-matrix-pattern relative shrink-0" />
@@ -79,7 +79,7 @@ export default function LandingPage() {
         <div className="flex-1 flex flex-col relative technical-grid bg-white">
           <LandingNavbar />
 
-          <main className="flex-1 flex flex-col items-center relative z-10 px-0 sm:px-4">
+          <main className="relative z-10 flex flex-1 flex-col items-center px-4 sm:px-4">
             <LandingHero />
             <InstitutionalArchitecture />
           </main>

@@ -22,7 +22,7 @@ export function InstitutionalFeatures() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="py-20 px-0 sm:px-8 bg-[#FAFAFA] border-b-2 border-black bg-grid-paper"
+            className="border-b-2 border-black bg-[#FAFAFA] bg-grid-paper px-4 py-20 sm:px-8"
             style={{ backgroundSize: "24px 24px" }}
         >
             <div className="max-w-[1200px] mx-auto">
@@ -31,9 +31,9 @@ export function InstitutionalFeatures() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.8 }}
-                    className="max-w-[1200px] mx-auto text-center mb-12"
+                    className="mx-auto mb-12 max-w-[1200px] text-center"
                 >
-                    <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-black mb-6">
+                    <h2 className="mb-6 font-serif text-3xl text-black sm:text-4xl lg:text-5xl">
                         Unified Platform <br />
                         <span className="italic font-light">Full Stack Application Suite</span>
                     </h2>
@@ -44,13 +44,127 @@ export function InstitutionalFeatures() {
                 </motion.div>
 
                 <div className="space-y-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        className="md:hidden"
+                    >
+                        <div className="overflow-hidden rounded-[28px] border-2 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.12)]">
+                            <div className="border-b-2 border-black bg-neutral-100 px-4 py-4">
+                                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                                    Product Preview
+                                </div>
+                                <div className="mt-4 grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab("student")}
+                                        className={[
+                                            "rounded-2xl border-2 px-4 py-3 text-sm font-semibold transition-colors",
+                                            activeTab === "student"
+                                                ? "border-black bg-black text-white"
+                                                : "border-black bg-white text-black"
+                                        ].join(" ")}
+                                    >
+                                        Student Portal
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab("admin")}
+                                        className={[
+                                            "rounded-2xl border-2 px-4 py-3 text-sm font-semibold transition-colors",
+                                            activeTab === "admin"
+                                                ? "border-black bg-black text-white"
+                                                : "border-black bg-white text-black"
+                                        ].join(" ")}
+                                    >
+                                        Admin Desk
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-4">
+                                {activeTab === "student" ? (
+                                    <div className="space-y-4">
+                                        <div className="rounded-[24px] border-2 border-black bg-blue-600 p-5 text-white">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-blue-100">Student Experience</p>
+                                            <h3 className="mt-2 text-xl font-bold">A dashboard students actually use</h3>
+                                            <p className="mt-2 text-sm leading-6 text-blue-100">
+                                                Applications, resume building, and job tracking stay in one clean workflow.
+                                            </p>
+                                        </div>
+                                        <div className="grid gap-3">
+                                            <div className="rounded-[22px] border-2 border-black bg-white p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-sm font-bold text-black">Readiness Score</p>
+                                                        <p className="text-xs text-neutral-500">Updated from profile and resume data</p>
+                                                    </div>
+                                                    <div className="text-2xl font-bold text-black">82%</div>
+                                                </div>
+                                            </div>
+                                            <div className="rounded-[22px] border-2 border-black bg-white p-4">
+                                                <p className="text-sm font-bold text-black">Recommended Roles</p>
+                                                <div className="mt-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-3">
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-black">Software Engineer</p>
+                                                            <p className="text-xs text-neutral-500">Google • Bangalore</p>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-blue-600">98% Match</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="rounded-[24px] border-2 border-black bg-black p-5 text-white">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-neutral-300">Admin Control</p>
+                                            <h3 className="mt-2 text-xl font-bold">One surface for the full placement engine</h3>
+                                            <p className="mt-2 text-sm leading-6 text-neutral-300">
+                                                Manage students, recruiters, communication, and reporting from one operating layer.
+                                            </p>
+                                        </div>
+                                        <div className="grid gap-3">
+                                            <div className="rounded-[22px] border-2 border-black bg-white p-4">
+                                                <p className="text-sm font-bold text-black">Institutional Overview</p>
+                                                <div className="mt-3 flex items-end justify-between">
+                                                    <div>
+                                                        <p className="text-2xl font-bold text-black">1,102</p>
+                                                        <p className="text-xs text-neutral-500">Total placements this cycle</p>
+                                                    </div>
+                                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Live</p>
+                                                </div>
+                                            </div>
+                                            <div className="rounded-[22px] border-2 border-black bg-white p-4">
+                                                <p className="text-sm font-bold text-black">Recent Activity</p>
+                                                <div className="mt-3 space-y-2">
+                                                    {[
+                                                        "Aman Sharma applied to Microsoft",
+                                                        "Adobe Q4 drive initialized"
+                                                    ].map((log) => (
+                                                        <div key={log} className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-black">
+                                                            {log}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+
                     {/* Premium Student Dashboard Mockup */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 40 }}
                         whileInView={{ opacity: 1, scale: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 1, ease: "easeOut" }}
-                        className="relative mx-auto max-w-[1000px] perspective-1000"
+                        className="relative mx-auto hidden max-w-[1000px] perspective-1000 md:block"
                     >
                         {/* Browser Window Frame (Premium Brave-inspired) */}
                         <div className="bg-[#f0f1f4] rounded-xl border-2 border-black overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] relative z-10 transition-shadow hover:shadow-[0_48px_80px_-20px_rgba(0,0,0,0.4)]">
@@ -277,14 +391,14 @@ export function InstitutionalFeatures() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.8 }}
-                        className="bg-white border-2 border-black shadow-sharp p-0 overflow-hidden"
+                        className="overflow-hidden border-2 border-black bg-white p-0 shadow-sharp"
                     >
                         <div className="grid md:grid-cols-2">
-                            <div className="p-10 flex flex-col justify-center border-r-2 border-black">
-                                <h3 className="text-2xl font-bold text-black mb-4 tracking-tight">
+                            <div className="flex flex-col justify-center border-b-2 border-black p-6 sm:p-8 md:border-b-0 md:border-r-2 md:p-10">
+                                <h3 className="mb-4 text-2xl font-bold tracking-tight text-black">
                                     Real-time Intelligence
                                 </h3>
-                                <p className="text-gray-600 leading-relaxed mb-8">
+                                <p className="mb-8 leading-relaxed text-gray-600">
                                     Visualize placement trends across departments. Export
                                     reports for NBA/NAAC accreditation in one click.
                                 </p>
@@ -303,9 +417,9 @@ export function InstitutionalFeatures() {
                                     ))}
                                 </ul>
                             </div>
-                            <div className="bg-gray-50 p-10 flex items-center justify-center relative">
-                                <div className="relative w-full max-w-md bg-white border-2 border-black shadow-sharp p-6 z-10">
-                                    <div className="text-xs font-bold text-black uppercase mb-6 font-space-mono border-b border-gray-200 pb-2">
+                            <div className="relative flex items-center justify-center bg-gray-50 p-6 sm:p-8 md:p-10">
+                                <div className="relative z-10 w-full max-w-md border-2 border-black bg-white p-5 shadow-sharp sm:p-6">
+                                    <div className="mb-6 border-b border-gray-200 pb-2 font-space-mono text-xs font-bold uppercase text-black">
                                         Placement Performance // Q3
                                     </div>
                                     <div className="flex items-end gap-3 h-40">

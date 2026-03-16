@@ -5,8 +5,8 @@ import Link from "next/link";
 export function LandingFooter() {
     return (
         <footer className="relative bg-white pt-24 pb-12 overflow-hidden">
-            <div className="max-w-7xl mx-auto px-0 sm:px-10 relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 mb-20">
+            <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-10">
+                <div className="mb-16 grid grid-cols-1 gap-12 lg:mb-20 lg:grid-cols-12 lg:gap-16">
                     {/* Brand Column */}
                     <div className="lg:col-span-5 space-y-8">
                         <div className="flex items-center gap-3">
@@ -24,7 +24,7 @@ export function LandingFooter() {
                     </div>
 
                     {/* Links Columns */}
-                    <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-12">
+                    <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-3 lg:col-span-7 lg:gap-12">
                         {[
                             { title: 'Explore', links: ['Features', 'Elite Dashboard', 'Smart Analytics', 'AI Resume Builder'] },
                             { title: 'Platform', links: ['Automated TPO', 'Success Stories', 'Engineering', 'Contact Sales'] },
@@ -47,7 +47,7 @@ export function LandingFooter() {
                 </div>
 
                 {/* Bottom Bar */}
-                <div className="pt-10 border-t border-neutral-100 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex flex-col items-start justify-between gap-4 border-t border-neutral-100 pt-8 text-left md:flex-row md:items-center">
                     <p className="text-[13px] text-neutral-400">
                         © 2026 PlacePro. All rights reserved.
                     </p>
