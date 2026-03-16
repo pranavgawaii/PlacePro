@@ -17,6 +17,19 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const parseLoginPayload = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) {
+      return null;
+    }
+
+    try {
+      return (JSON.parse(trimmed) as { success?: boolean; error?: string; redirectTo?: string }) ?? null;
+    } catch {
+      return null;
+    }
+  };
+
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
@@ -31,15 +44,8 @@ export function LoginForm() {
         })
       });
 
-      // Handle cases where the component might unmount or signal aborts in Next.js 15/React 19
       const text = await response.text();
-      let payload: { success?: boolean; error?: string; redirectTo?: string } | null = null;
-
-      try {
-        payload = JSON.parse(text);
-      } catch {
-        payload = null;
-      }
+      const payload = parseLoginPayload(text);
 
       if (!response.ok || !payload?.success) {
         toast.error(payload?.error ?? "Unable to sign in. Please try again.");
@@ -60,7 +66,7 @@ export function LoginForm() {
       console.error("Login unexpected error:", err);
       toast.error("Network error: unable to reach login service.");
     } finally {
-      if (loading) setLoading(false);
+      setLoading(false);
     }
   };
 

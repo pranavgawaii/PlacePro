@@ -41,12 +41,20 @@ export function LandingHero() {
                 className="relative mb-0 flex w-full max-w-md flex-col items-center gap-3 sm:max-w-none sm:flex-row sm:justify-center sm:items-center"
             >
                 <Link href="/signup" className="w-full sm:w-auto">
-                    <button className="w-full border-2 border-black bg-black px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-600 sm:w-auto sm:min-w-[210px] sm:text-xs">
+                    <button className="relative w-full bg-black px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-600 sm:w-auto sm:min-w-[210px] sm:text-xs">
                         Book a Strategy Demo
+                        <div className="absolute top-1 left-1 h-1 w-1 rounded-full bg-white"></div>
+                        <div className="absolute top-1 right-1 h-1 w-1 rounded-full bg-white"></div>
+                        <div className="absolute bottom-1 left-1 h-1 w-1 rounded-full bg-white"></div>
+                        <div className="absolute bottom-1 right-1 h-1 w-1 rounded-full bg-white"></div>
                     </button>
                 </Link>
-                <button className="w-full border-2 border-black bg-[#E5E5E5] px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-[#d4d4d4] sm:w-auto sm:min-w-[210px] sm:text-xs">
+                <button className="relative w-full bg-[#E5E5E5] px-6 py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#d4d4d4] sm:w-auto sm:min-w-[210px] sm:text-xs">
                     View 5-Minute Product Tour
+                    <div className="absolute top-1 left-1 h-1 w-1 rounded-full bg-black"></div>
+                    <div className="absolute top-1 right-1 h-1 w-1 rounded-full bg-black"></div>
+                    <div className="absolute bottom-1 left-1 h-1 w-1 rounded-full bg-black"></div>
+                    <div className="absolute bottom-1 right-1 h-1 w-1 rounded-full bg-black"></div>
                 </button>
             </motion.div>
         </div>
