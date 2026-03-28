@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, FileCheck, SquareCheckBig, Square } from "lucide-react";
+import { CalendarClock, Download, Eye, FileCheck, SquareCheckBig, Square, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ export function CoordinatorAttendanceTab({ coordinators }: CoordinatorAttendance
 
   const selectedCount = selectedIds.length;
   const isValid = Boolean(eventDetails.event_title && eventDetails.event_date && eventDetails.time_from && eventDetails.time_to && selectedCount > 0);
+  const readinessLabel = isValid ? "Ready to preview" : "Waiting for details";
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
@@ -89,16 +90,55 @@ export function CoordinatorAttendanceTab({ coordinators }: CoordinatorAttendance
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="space-y-2">
         <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">Official Letter Workflow</div>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">Attendance letters</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
+        <h2 className="text-2xl font-semibold tracking-tight text-neutral-950">Attendance letters</h2>
+        <p className="max-w-2xl text-sm leading-6 text-neutral-600">
           Generate the CN-CRTP attendance request letter with event details and the selected coordinator roster.
         </p>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="rounded-[24px] border-neutral-200 bg-neutral-50/70 shadow-none">
+          <CardContent className="flex items-start justify-between gap-4 p-5">
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Selected</div>
+              <div className="text-2xl font-semibold tracking-tight text-neutral-950">{selectedCount}</div>
+              <p className="text-sm text-neutral-600">Coordinators included in the current letter</p>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700">
+              <UsersRound className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-[24px] border-neutral-200 bg-neutral-50/70 shadow-none">
+          <CardContent className="flex items-start justify-between gap-4 p-5">
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Workflow State</div>
+              <div className="text-2xl font-semibold tracking-tight text-neutral-950">{readinessLabel}</div>
+              <p className="text-sm text-neutral-600">Complete event details and selections to enable the PDF.</p>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700">
+              <FileCheck className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-[24px] border-neutral-200 bg-neutral-50/70 shadow-none">
+          <CardContent className="flex items-start justify-between gap-4 p-5">
+            <div className="space-y-2">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Event Window</div>
+              <div className="text-2xl font-semibold tracking-tight text-neutral-950">{eventDetails.event_date || "Set date"}</div>
+              <p className="text-sm text-neutral-600">{eventDetails.time_from && eventDetails.time_to ? `${eventDetails.time_from} to ${eventDetails.time_to}` : "Start and end time pending"}</p>
+            </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700">
+              <CalendarClock className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <Card className="border-neutral-200 shadow-sm">
+        <Card className="rounded-[28px] border-neutral-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-neutral-900">Event details</CardTitle>
           </CardHeader>
@@ -158,7 +198,7 @@ export function CoordinatorAttendanceTab({ coordinators }: CoordinatorAttendance
           </CardContent>
         </Card>
 
-        <Card className="border-neutral-200 shadow-sm">
+        <Card className="rounded-[28px] border-neutral-200 shadow-sm">
           <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-base font-semibold text-neutral-900">Coordinator selection</CardTitle>

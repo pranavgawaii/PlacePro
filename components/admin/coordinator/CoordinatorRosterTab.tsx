@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Edit2, FileCheck, FileText, Plus, Search, Trash2, UserPlus } from "lucide-react";
+import { Edit2, FileCheck, FileText, Mail, Plus, Search, Trash2, UserPlus, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -120,13 +120,36 @@ export function CoordinatorRosterTab({ coordinators, loading, onChanged, onOpenA
     }
   };
 
+  const coordinatorsWithEmail = coordinators.filter((coordinator) => Boolean(coordinator.email)).length;
+  const coveredDepartments = new Set(coordinators.map((coordinator) => coordinator.department)).size;
+  const summaryCards = [
+    {
+      label: "Total Coordinators",
+      value: coordinators.length,
+      note: "Active roster records",
+      icon: UsersRound
+    },
+    {
+      label: "Contact Coverage",
+      value: `${coordinatorsWithEmail}/${coordinators.length || 0}`,
+      note: "Roster members with email",
+      icon: Mail
+    },
+    {
+      label: "Departments",
+      value: coveredDepartments,
+      note: "Academic units represented",
+      icon: FileCheck
+    }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+        <div className="space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">Coordinator Desk</div>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">Coordinator roster</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
+          <h2 className="text-2xl font-semibold tracking-tight text-neutral-950">Coordinator roster</h2>
+          <p className="max-w-2xl text-sm leading-6 text-neutral-600">
             Manage the official placement coordinators, prepare attendance letters, and move into the application workflow.
           </p>
         </div>
@@ -146,7 +169,27 @@ export function CoordinatorRosterTab({ coordinators, loading, onChanged, onOpenA
         </div>
       </div>
 
-      <Card className="border-neutral-200 shadow-sm">
+      <div className="grid gap-4 md:grid-cols-3">
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Card key={card.label} className="rounded-[24px] border-neutral-200 bg-neutral-50/70 shadow-none">
+              <CardContent className="flex items-start justify-between gap-4 p-5">
+                <div className="space-y-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">{card.label}</div>
+                  <div className="text-2xl font-semibold tracking-tight text-neutral-950">{card.value}</div>
+                  <p className="text-sm text-neutral-600">{card.note}</p>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700">
+                  <Icon className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="rounded-[28px] border-neutral-200 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold text-neutral-900">Search and filter</CardTitle>
         </CardHeader>
@@ -175,7 +218,7 @@ export function CoordinatorRosterTab({ coordinators, loading, onChanged, onOpenA
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-neutral-200 shadow-sm">
+      <Card className="overflow-hidden rounded-[28px] border-neutral-200 shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-neutral-200">
             <thead className="bg-neutral-50/80">
@@ -212,10 +255,27 @@ export function CoordinatorRosterTab({ coordinators, loading, onChanged, onOpenA
                 filteredCoordinators.map((coordinator) => (
                   <tr key={coordinator.id} className="transition hover:bg-neutral-50/70">
                     <td className="px-6 py-4 align-top">
-                      <div className="font-medium text-neutral-900">{coordinator.name}</div>
-                      <div className="mt-1 text-sm text-neutral-500">{coordinator.email || "Email not added"}</div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-neutral-50 text-sm font-semibold text-neutral-700">
+                          {coordinator.name
+                            .split(" ")
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((part) => part[0])
+                            .join("")
+                            .toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-medium text-neutral-900">{coordinator.name}</div>
+                          <div className="mt-1 text-sm text-neutral-500">{coordinator.email || "Email not added"}</div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-neutral-800">{coordinator.enrollment_no}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-neutral-800">
+                      <span className="inline-flex rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold tracking-[0.12em] text-neutral-700">
+                        {coordinator.enrollment_no}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-sm text-neutral-600">{coordinator.year}</td>
                     <td className="px-6 py-4 text-sm text-neutral-600">{coordinator.department}</td>
                     <td className="px-6 py-4">

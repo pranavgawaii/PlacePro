@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check, Copy, Edit, Eye, ExternalLink, FileText, ToggleLeft, ToggleRight } from "lucide-react";
+import { Check, ClipboardCheck, Copy, Edit, Eye, ExternalLink, FileText, Send, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -48,13 +48,37 @@ export function CoordinatorFormsTab({ forms, loading, onRefresh }: CoordinatorFo
     }
   };
 
+  const activeForms = forms.filter((form) => form.status === "active").length;
+  const totalResponses = forms.reduce((sum, form) => sum + form.response_count, 0);
+  const closedForms = forms.filter((form) => form.status === "closed").length;
+  const summaryCards = [
+    {
+      label: "Total Forms",
+      value: forms.length,
+      note: "Coordinator application flows",
+      icon: FileText
+    },
+    {
+      label: "Active Forms",
+      value: activeForms,
+      note: `${closedForms} currently closed`,
+      icon: Send
+    },
+    {
+      label: "Responses Logged",
+      value: totalResponses,
+      note: "Across all coordinator applications",
+      icon: ClipboardCheck
+    }
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+        <div className="space-y-2">
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">PlacePro Forms</div>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-950">Coordinator application forms</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
+          <h2 className="text-2xl font-semibold tracking-tight text-neutral-950">Coordinator application forms</h2>
+          <p className="max-w-2xl text-sm leading-6 text-neutral-600">
             Create coordinator applications, publish public links, and review submissions from one control surface.
           </p>
         </div>
@@ -66,7 +90,27 @@ export function CoordinatorFormsTab({ forms, loading, onRefresh }: CoordinatorFo
         </Button>
       </div>
 
-      <Card className="overflow-hidden border-neutral-200 shadow-sm">
+      <div className="grid gap-4 md:grid-cols-3">
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Card key={card.label} className="rounded-[24px] border-neutral-200 bg-neutral-50/70 shadow-none">
+              <CardContent className="flex items-start justify-between gap-4 p-5">
+                <div className="space-y-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">{card.label}</div>
+                  <div className="text-2xl font-semibold tracking-tight text-neutral-950">{card.value}</div>
+                  <p className="text-sm text-neutral-600">{card.note}</p>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700">
+                  <Icon className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="overflow-hidden rounded-[28px] border-neutral-200 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-semibold text-neutral-900">Application forms</CardTitle>
         </CardHeader>
