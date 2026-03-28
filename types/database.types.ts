@@ -963,6 +963,160 @@ export interface Database {
           }
         ];
       };
+      placement_coordinators: {
+        Row: {
+          id: string;
+          name: string;
+          enrollment_no: string;
+          email: string | null;
+          department: string;
+          year: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          enrollment_no: string;
+          email?: string | null;
+          department: string;
+          year: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          enrollment_no?: string;
+          email?: string | null;
+          department?: string;
+          year?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      coordinator_forms: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          slug: string;
+          status: "draft" | "active" | "closed";
+          is_public: boolean;
+          theme_settings: Json;
+          deadline: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          slug: string;
+          status?: "draft" | "active" | "closed";
+          is_public?: boolean;
+          theme_settings?: Json;
+          deadline?: string | null;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          description?: string | null;
+          slug?: string;
+          status?: "draft" | "active" | "closed";
+          is_public?: boolean;
+          theme_settings?: Json;
+          deadline?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coordinator_forms_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      coordinator_form_fields: {
+        Row: {
+          id: string;
+          form_id: string;
+          label: string;
+          field_type: "short_text" | "long_text" | "email" | "number" | "select";
+          required: boolean;
+          options: Json | null;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          label: string;
+          field_type: "short_text" | "long_text" | "email" | "number" | "select";
+          required?: boolean;
+          options?: Json | null;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          label?: string;
+          field_type?: "short_text" | "long_text" | "email" | "number" | "select";
+          required?: boolean;
+          options?: Json | null;
+          sort_order?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coordinator_form_fields_form_id_fkey";
+            columns: ["form_id"];
+            isOneToOne: false;
+            referencedRelation: "coordinator_forms";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      coordinator_form_responses: {
+        Row: {
+          id: string;
+          form_id: string;
+          answers: Json;
+          status: "new" | "shortlisted" | "rejected" | "on_hold";
+          notes: string | null;
+          applicant_name: string | null;
+          applicant_email: string | null;
+          submitted_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          answers: Json;
+          status?: "new" | "shortlisted" | "rejected" | "on_hold";
+          notes?: string | null;
+          applicant_name?: string | null;
+          applicant_email?: string | null;
+          submitted_at?: string;
+        };
+        Update: {
+          answers?: Json;
+          status?: "new" | "shortlisted" | "rejected" | "on_hold";
+          notes?: string | null;
+          applicant_name?: string | null;
+          applicant_email?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coordinator_form_responses_form_id_fkey";
+            columns: ["form_id"];
+            isOneToOne: false;
+            referencedRelation: "coordinator_forms";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       user_roles: {
         Row: {
           user_id: string;

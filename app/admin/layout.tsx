@@ -20,6 +20,7 @@ export default async function AdminLayout({
     { href: "/admin/students", label: "Students" },
     { href: "/admin/companies", label: "Companies" },
     { href: "/admin/seat-allocation", label: "Seat Allocation" },
+    { href: "/admin/coordinator", label: "Coordinator" },
     { href: "/admin/messages", label: "Broadcasts" },
     { href: "/admin/settings", label: "Settings" }
   ];
