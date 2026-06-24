@@ -1,99 +1,88 @@
-# PlacePro
-### The OS for Modern Campus Recruitment
+<div align="center">
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Database-181818?style=for-the-badge&logo=supabase)](https://supabase.com/)
-[![Tailwind](https://img.shields.io/badge/Tailwind-CSS-black?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-[![License](https://img.shields.io/badge/License-MIT-black?style=for-the-badge)](LICENSE)
+# <img src="public/favicon.svg" height="26" alt="PlacePro Logo" style="margin-bottom: -4px;" /> PlacePro
 
-PlacePro is a high-performance orchestration platform designed for elite academic institutions. It transforms fragmented placement processes into a cohesive, secure, and prestigious digital experience. Built for the next decade of campus recruitment.
+<code>campus recruitment. simplified.</code>
 
----
+<br>
 
-## 🏛️ Institutional Operational Excellence
+<code>status → proposed to tpo</code> &nbsp;
+<code>stack → next.js 15 · supabase · vercel</code> &nbsp;
+<code>students → 200+ targeted</code>
 
-Generic dashboards fail the "Trust Test." PlacePro solves this by providing an environment that feels as official as a physical placement office.
+<br>
 
-### ✒️ Pure Typography-First Design
-Our **Extreme Premium** aesthetic removes the clutter of generic SaaS apps. We use a document-style transcript system that ensures every communication carries institutional weight.
+[www.placepro.in](https://www.placepro.in)
 
-### ⚡ Real-Time Orchestration
-Powered by a reactive PostgreSQL backbone, PlacePro delivers zero-latency updates. Whether it's a critical TPO broadcast or a direct student update, information flows instantly without page refreshes.
-
-### 🔐 Enterprise-Grade Governance
-Manage student registries, verify high-stakes documentation, and control institutional identity with granular Role-Based Access Control (RBAC).
+</div>
 
 ---
 
-## 💎 The Feature Suite
+## What Is This
 
-### 🎓 Student Workspace
-A minimalist, high-focus canvas for students to track applications, upload verified credentials, and engage in professional correspondence via the **Institutional Inbox**.
+PlacePro replaces the generic placement portals most 
+colleges use. One platform for students, TPOs, and 
+recruiters — applications, documents, analytics, and 
+seat allocation in one place.
 
-### 🛠️ TPO Control Plane (Admin)
-A sophisticated administrative suite for managing the placement lifecycle:
-- **Registry Management**: Instant search, filter, and bulk student provisioning.
-- **Verification Engine**: Secure handling of academic transcripts and resumes.
-- **Announcement Direct**: Targeted broadcast system with read-receipt tracking.
-
-### 💼 Recruiter Pipeline (Internal)
-Optimized data structures designed for high-volume recruitment drives, supporting complex eligibility criteria and multi-stage hiring workflows.
+↳ **differentiator:** Seat Allocation Engine — parses 
+student data, maps to labs, generates physical seat 
+documents automatically. No other placement portal 
+does this.
 
 ---
 
-## 🛠️ Infrastructure & Tech Stack
+## Architecture
 
-PlacePro is engineered for stability, speed, and security.
-
-- **Frontend Core**: Next.js 15 (App Router Architecture)
-- **Data Persistence**: Supabase (Cloud-Native PostgreSQL)
-- **Real-Time Engine**: Supabase Realtime (WebSockets)
-- **Design System**: Custom Tailwind Architecture + Radix UI
-- **Security**: JWT Session Handling + Row-Level Security (RLS) policies
+![PlacePro Architecture](assets/illustrations/placepro-architecture.png)
 
 ---
 
-## 🚀 Deployment Manual
+## Tech Stack
 
-### 1. Synchronize Environment
-Configure your secrets in a `.env` file:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_key
+```
+frontend  → Next.js 15 · React 19 · Tailwind · Radix UI
+backend   → Next.js Server Actions · Supabase Edge Functions
+database  → Supabase PostgreSQL · RLS · Realtime WebSockets
+auth      → Supabase Auth · JWT · Row Level Security
+pdf       → Puppeteer + Chromium (serverless)
+infra     → Vercel · Vercel Analytics
 ```
 
-### 2. Standard Installation
+---
+
+## Getting Started
+
 ```bash
-npm install
+➜ git clone https://github.com/pranavgawaii/placepro
+➜ cd placepro
+➜ cp .env.example .env.local   # add supabase keys
+➜ npm install && npm run dev
 ```
 
-### 3. Initialize Engine
-```bash
-npm run dev
-```
+---
+
+## Key Features
+
+→ seat allocation engine — lab mapping + auto document generation  
+→ realtime updates via supabase websockets  
+→ role-based access — student · tpo · recruiter  
+→ automated pdf generation — resumes + seat docs  
+→ live analytics — placement % · packages · branch-wise offers  
+→ bulk student registry upload  
 
 ---
 
-## 🗺️ Product Roadmap
+## What's Next
 
-- [ ] **PlacePro AI**: LLM-driven resume evaluation and placement prediction.
-- [ ] **Institutional Seal**: Blockchain-verified credentialing for student documents.
-- [ ] **Multi-College Support**: Centralized placement hub for University clusters.
-
----
-
-## ✨ Support & Stewardship
-
-PlacePro is a product of our commitment to extreme quality. If you find this software transformative for your institution:
-
-⭐ **Star this repository** to support the development of high-end educational technology.
-
-### 🤝 Strategic Collaboration
-We invite institutional partners, academic developers, and design enthusiasts to contribute. PlacePro thrives on the feedback of the community it serves.
-
-- **Developer Outreach**: Open a PR for performance or design optimizations.
-- **Deployment Support**: Reach out if you're deploying this for your University.
+→ placepro ai — llm-powered resume evaluation  
+→ blockchain verified institutional credentials  
+→ multi-college cluster support  
 
 ---
-*Created for the visionaries of education. Maintained by the PlacePro Core Team.*
+
+<div align="center">
+<br>
+<code>www.placepro.in</code> &nbsp;•&nbsp; <code>www.pranavx.in</code>
+<br><br>
+</div>
